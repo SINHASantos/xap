@@ -46,9 +46,6 @@ import java.nio.charset.Charset;
 import java.rmi.NoSuchObjectException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  * A Reader is capable of reading Request Packets and Reply Packets from a Socket Channel. An NIO
  * Client Peer uses an instance of a Reader to read Reply Packets while an NIO Server uses an
@@ -59,12 +56,8 @@ import java.util.logging.Logger;
  */
 @com.gigaspaces.api.InternalApi
 public abstract class Reader {
-    private static final Logger _logger = Logger.getLogger(Constants.LOGGER_LRMI);
-    private static final Logger offendingMessageLogger = Logger.getLogger(Constants.LOGGER_LRMI + ".offending");
-public class Reader {
     private static final Logger _logger = LoggerFactory.getLogger(Constants.LOGGER_LRMI);
     private static final Logger offendingMessageLogger = LoggerFactory.getLogger(Constants.LOGGER_LRMI + ".offending");
-    private static final Logger _slowerConsumerLogger = LoggerFactory.getLogger(Constants.LOGGER_LRMI_SLOW_COMSUMER);
     public static final long SUSPICIOUS_THRESHOLD = Long.valueOf(System.getProperty("com.gs.lrmi.suspicious-threshold", "20000000"));
     private static final LongAdder receivedTraffic = new LongAdder();
 
@@ -203,7 +196,7 @@ public class Reader {
             throw new IOException("Handshake failed expecting message of up to " + sizeLimit + " bytes, actual size is: " + dataLength + " bytes.");
         }
         if (dataLength > SUSPICIOUS_THRESHOLD) {
-            _logger.warn("About to allocate " + dataLength + " bytes - from socket channel: " + _socketChannel);
+            _logger.warn("About to allocate " + dataLength + " bytes - from socket channel: " + getEndpointDesc());
         }
 
         /* allocate the buffer on demand, otherwise reuse the buffer */

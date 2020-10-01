@@ -81,7 +81,6 @@ public class CPeer extends BaseClientPeer {
     private static final Logger _logger = LoggerFactory.getLogger(Constants.LOGGER_LRMI);
     private static final Logger _contextLogger = LoggerFactory.getLogger(Constants.LOGGER_LRMI_CONTEXT);
 
-    private static final int SELECTOR_BUG_CONNECT_RETRY = Integer.getInteger(SystemProperties.LRMI_SELECTOR_BUG_CONNECT_RETRY, 5);
 
     // should the thread name be changed to include socket information during sychonous invocations
     private static final boolean CHANGE_THREAD_NAME_ON_INVOCATION = Boolean.getBoolean("com.gs.lrmi.change.thread.name");
@@ -566,7 +565,7 @@ public class CPeer extends BaseClientPeer {
             //Update stage to CLIENT_RECEIVE_REPLY, no new snapshot is required
             LRMIInvocationContext.updateContext(null, null, InvocationStage.CLIENT_RECEIVE_REPLY, null, null, false, null, null);
 
-            boolean hasMoreIntermediateRequests = true;
+            boolean hasMoreIntermidiateRequests = true;
             ReplyPacket replyPacket;
             // Put the class loader id of the remote object in thread local in case a there's a need
             // to load a remote class, we will use the class loader of the exported object

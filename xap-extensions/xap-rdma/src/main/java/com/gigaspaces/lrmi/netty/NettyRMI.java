@@ -1,7 +1,6 @@
 package com.gigaspaces.lrmi.netty;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.io.*;
