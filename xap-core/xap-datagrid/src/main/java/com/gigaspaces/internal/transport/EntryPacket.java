@@ -69,6 +69,9 @@ public class EntryPacket extends AbstractEntryPacket {
     private boolean _noWriteLease;
     private boolean _fifo;
 
+
+    private byte[] binaryFields;
+
     /**
      * Default constructor required by {@link java.io.Externalizable}.
      */
@@ -77,6 +80,12 @@ public class EntryPacket extends AbstractEntryPacket {
 
     public EntryPacket(ITypeDesc typeDesc, EntryType entryType, Object[] fixedProperties, Map<String, Object> dynamicProperties,
                        String uid, int version, long timeToLive, boolean isTransient) {
+        this(typeDesc,entryType,fixedProperties,dynamicProperties,uid,version,timeToLive,isTransient,null);
+    }
+
+
+    public EntryPacket(ITypeDesc typeDesc, EntryType entryType, Object[] fixedProperties, Map<String, Object> dynamicProperties,
+                       String uid, int version, long timeToLive, boolean isTransient, byte[] binaryFields) {
         super(typeDesc, entryType);
         _typeName = typeDesc.getTypeName();
         _fixedProperties = fixedProperties;
@@ -87,12 +96,19 @@ public class EntryPacket extends AbstractEntryPacket {
         _transient = isTransient;
         _noWriteLease = false;
         _fifo = false;
+        this.binaryFields = binaryFields;
     }
 
     protected EntryPacket(ITypeDesc typeDesc, Object[] values) {
+      this(typeDesc,values,null);
+    }
+
+
+    protected EntryPacket(ITypeDesc typeDesc, Object[] values, byte[] binaryFields) {
         super(typeDesc, typeDesc.getObjectType());
         this._typeName = typeDesc.getTypeName();
         this._fixedProperties = values;
+        this.binaryFields = binaryFields;
     }
 
     /**
@@ -106,6 +122,9 @@ public class EntryPacket extends AbstractEntryPacket {
         IEntryPacket packet = super.clone();
         if (_fixedProperties != null)
             packet.setFieldsValues(_fixedProperties.clone());
+        if (binaryFields != null){
+            packet.setBinaryFields(binaryFields.clone());
+        }
         return packet;
     }
 
@@ -150,6 +169,16 @@ public class EntryPacket extends AbstractEntryPacket {
     }
 
     public Object[] getFieldValues() {
+        if (_fixedProperties == null && getTypeDescriptor() != null &&
+                getTypeDescriptor().getClassBinaryStorageAdapter() != null && binaryFields != null) {
+            try {
+                _fixedProperties = getTypeDescriptor().getClassBinaryStorageAdapter().fromBinary(getTypeDescriptor(), binaryFields);
+                binaryFields = null;
+            } catch (IOException | ClassNotFoundException e) {
+                throw new IllegalStateException("The field values array was not properly set", e);
+            }
+        }
+
         return _fixedProperties;
     }
 
@@ -159,7 +188,7 @@ public class EntryPacket extends AbstractEntryPacket {
 
     public Object getFieldValue(int index) {
         try {
-            return _fixedProperties[index];
+            return getFieldValues()[index];
         } catch (Exception e) {
             throw new IllegalStateException("The field values array was not properly set", e);
         }
@@ -167,7 +196,7 @@ public class EntryPacket extends AbstractEntryPacket {
 
     public void setFieldValue(int index, Object value) {
         try {
-            _fixedProperties[index] = value;
+            getFieldValues()[index] = value;
         } catch (Exception e) {
             throw new IllegalStateException("The field values array was not properly set", e);
         }
@@ -209,6 +238,11 @@ public class EntryPacket extends AbstractEntryPacket {
         _customQuery = customQuery;
     }
 
+    @Override
+    public boolean isSerializeTypeDesc() {
+        return binaryFields != null || super.isSerializeTypeDesc();
+    }
+
     private static final short FLAG_CLASSNAME = 1 << 0;
     private static final short FLAG_UID = 1 << 1;
     private static final short FLAG_VERSION = 1 << 2;
@@ -221,6 +255,7 @@ public class EntryPacket extends AbstractEntryPacket {
     private static final short FLAG_RETURN_ONLY_UIDS = 1 << 9;
     private static final short FLAG_CUSTOM_QUERY = 1 << 10;
     private static final short FLAG_DYNAMIC_PROPERTIES = 1 << 11;
+    private static final short FLAG_BINARY_FIELDS= 1 << 12;
 
     private short buildFlags() {
         short flags = 0;
@@ -235,8 +270,11 @@ public class EntryPacket extends AbstractEntryPacket {
             flags |= FLAG_TIME_TO_LIVE;
         if (_multipleUIDs != null)
             flags |= FLAG_MULTIPLE_UIDS;
-        if (_fixedProperties != null)
+        if (binaryFields != null) {
+            flags |= FLAG_BINARY_FIELDS;
+        } else if (_fixedProperties != null){
             flags |= FLAG_FIELDS_VALUES;
+        }
         if (_fifo)
             flags |= FLAG_FIFO;
         if (_transient)
@@ -291,7 +329,9 @@ public class EntryPacket extends AbstractEntryPacket {
                 out.writeLong(_timeToLive);
             if (_multipleUIDs != null)
                 IOUtils.writeStringArray(out, _multipleUIDs);
-            if (_fixedProperties != null) {
+            if(binaryFields != null) {
+                IOUtils.writeByteArray(out, binaryFields);
+            }else if (_fixedProperties != null) {
                 try {
                     IOUtils.writeObjectArrayCompressed(out, _fixedProperties);
                 } catch (IOArrayException e) {
@@ -338,6 +378,9 @@ public class EntryPacket extends AbstractEntryPacket {
                 _timeToLive = in.readLong();
             if ((flags & FLAG_MULTIPLE_UIDS) != 0)
                 _multipleUIDs = IOUtils.readStringArray(in);
+            if((flags & FLAG_BINARY_FIELDS) != 0 ){
+                binaryFields = IOUtils.readByteArray(in);
+            }
             if ((flags & FLAG_FIELDS_VALUES) != 0) {
                 try {
                     _fixedProperties = IOUtils.readObjectArrayCompressed(in);
@@ -388,4 +431,13 @@ public class EntryPacket extends AbstractEntryPacket {
         return true;
     }
 
+    @Override
+    public void setBinaryFields(byte[] binaryFields) {
+        this.binaryFields = binaryFields;
+    }
+
+    @Override
+    public boolean allNullFieldValues() {
+        return _fixedProperties == null && binaryFields == null;
+    }
 }
