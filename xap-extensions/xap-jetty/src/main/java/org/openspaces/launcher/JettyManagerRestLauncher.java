@@ -160,7 +160,7 @@ public class JettyManagerRestLauncher implements Closeable {
         }
 
         boolean sslEnabled = Boolean.getBoolean(SystemProperties.MANAGER_REST_SSL_ENABLED);
-        String ssl = sslEnabled ? "_SSL_ENABLED" : "_SSL_DISABLED";
+        String ssl = sslEnabled ? "_Secured" : "";
         return "GigaSpaces_" + fileName.replace(" ","_").toUpperCase() + ssl;
     }
 
