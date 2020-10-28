@@ -23,10 +23,7 @@ import com.gigaspaces.internal.server.metadata.IServerTypeDesc;
 import com.gigaspaces.internal.server.space.MatchTarget;
 import com.gigaspaces.internal.server.space.SpaceUidFactory;
 import com.gigaspaces.internal.server.space.metadata.TypeDataFactory;
-import com.gigaspaces.internal.server.storage.IEntryData;
-import com.gigaspaces.internal.server.storage.IEntryHolder;
-import com.gigaspaces.internal.server.storage.ITemplateHolder;
-import com.gigaspaces.internal.server.storage.ShadowEntryHolder;
+import com.gigaspaces.internal.server.storage.*;
 import com.gigaspaces.metadata.StorageType;
 import com.gigaspaces.metadata.index.CompoundIndex;
 import com.gigaspaces.metadata.index.ISpaceCompoundIndexSegment;
@@ -1200,7 +1197,7 @@ public class TypeData {
             shadowEh.incrementNumOfUpdates();
             //there is an update but the entry is previously updated under this xtn
             IEntryData shadowEntryData = shadowEh.getEntryData();
-            boolean double_update = !isEqualProperties(shadowEntryData.getFixedPropertiesValues(), oldEntryData.getFixedPropertiesValues());
+            boolean double_update = !isEqualProperties(shadowEntryData, oldEntryData);
             if (hasIndexes()) {
                 int refpos = 1;
                 ArrayList<IObjectInfo<IEntryCacheInfo>> deletedBackRefs = pEntry.getBackRefs();
@@ -1260,26 +1257,15 @@ public class TypeData {
         }
     }
 
-    private boolean isEqualProperties(Object[] shadowProperties, Object[] oldProperties) {
-        if(shadowProperties == oldProperties){
-            return true;
-        }
-
-        if (shadowProperties.length != oldProperties.length) {
-            return false;
-        }
-
-        for (int i = 0; i < shadowProperties.length; i++) {
-            if (shadowProperties[i] == null) {
-                if (oldProperties[i] != null)
-                    return false;
-            } else {
-                if (!shadowProperties[i].equals(oldProperties[i]))
-                    return false;
+    private boolean isEqualProperties(IEntryData shadow, IEntryData old) {
+        if (shadow instanceof BinaryEntryData && old instanceof BinaryEntryData) {
+            if (((BinaryEntryData) shadow).getSerializedFields() == ((BinaryEntryData) old).getSerializedFields()) {
+                return true;
             }
+            return Arrays.equals(((BinaryEntryData) shadow).getSerializedFields(), ((BinaryEntryData) old).getSerializedFields());
+        } else {
+            return shadow.getFixedPropertiesValues() == old.getFixedPropertiesValues();
         }
-
-        return true;
     }
 
 
