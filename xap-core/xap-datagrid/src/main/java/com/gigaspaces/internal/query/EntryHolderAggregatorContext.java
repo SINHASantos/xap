@@ -18,12 +18,12 @@ package com.gigaspaces.internal.query;
 
 import com.gigaspaces.internal.server.storage.IEntryData;
 import com.gigaspaces.internal.server.storage.ITemplateHolder;
-import com.gigaspaces.internal.server.storage.ViewEntryData;
 import com.gigaspaces.internal.transport.EntryPacketFactory;
 import com.gigaspaces.internal.transport.IEntryPacket;
 import com.gigaspaces.query.aggregators.SpaceEntriesAggregator;
 import com.gigaspaces.query.aggregators.SpaceEntriesAggregatorContext;
 import com.gigaspaces.server.ServerEntry;
+import com.j_spaces.core.cache.context.Context;
 
 import java.util.List;
 
@@ -36,7 +36,7 @@ public class EntryHolderAggregatorContext extends SpaceEntriesAggregatorContext 
 
     private final ITemplateHolder template;
     private final int partitionId;
-    private final ViewEntryData entryDataView = new ViewEntryData();
+    private IEntryData entryData;
     private String uid;
     private boolean isTransient;
 
@@ -47,8 +47,8 @@ public class EntryHolderAggregatorContext extends SpaceEntriesAggregatorContext 
         this.partitionId = partitionId;
     }
 
-    public void scan(IEntryData entryData, String uid, boolean isTransient) {
-        this.entryDataView.view(entryData);
+    public void scan(Context context, IEntryData entryData, String uid, boolean isTransient) {
+        this.entryData = context.getViewEntryData(entryData);
         this.uid = uid;
         this.isTransient = isTransient;
         aggregate();
@@ -66,7 +66,7 @@ public class EntryHolderAggregatorContext extends SpaceEntriesAggregatorContext 
 
     @Override
     public RawEntry getRawEntry() {
-        return EntryPacketFactory.createFullPacket(template, entryDataView, uid, isTransient);
+        return EntryPacketFactory.createFullPacket(template, entryData, uid, isTransient);
     }
 
 
@@ -78,6 +78,6 @@ public class EntryHolderAggregatorContext extends SpaceEntriesAggregatorContext 
 
     @Override
     public ServerEntry getServerEntry() {
-        return entryDataView;
+        return entryData;
     }
 }

@@ -1540,8 +1540,9 @@ public class CacheManager extends AbstractCacheManager
                 edata.createShallowClonedCopyWithSuppliedVersion(versionID);
 
         if (udata instanceof BinaryEntryData) {
+            IEntryData cachedView = context.getCacheViewEntryDataIfNeeded(edata);
             MutableViewEntryData mutableViewEntryData = new MutableViewEntryData();
-            mutableViewEntryData.view(udata);
+            mutableViewEntryData.view(udata, cachedView.getFixedPropertiesValues());
             applyChangeMutators(context, template, mutableViewEntryData);
             udata.setFixedPropertyValues(mutableViewEntryData.getFixedPropertiesValues());
         } else {

@@ -91,6 +91,6 @@ public class ViewEntryData implements IEntryData {
     }
 
     public boolean isViewOf(IEntryData entryData) {
-        return this.entry.equals(entryData);
+        return this.entry == entryData;
     }
 }

@@ -1267,6 +1267,11 @@ public class Context {
             if(viewEntryData == null){
                 viewEntryData = new ViewEntryData();
             }
+
+            if(viewEntryData.isViewOf(entryData)){
+                return viewEntryData;
+            }
+
             viewEntryData.view(entryData);
             return viewEntryData;
         } else {

@@ -4738,13 +4738,13 @@ public class SpaceEngine implements ISpaceModeListener , IClusterInfoChangedList
         EntryHolderAggregatorContext aggregatorContext = template.getAggregatorContext();
         if (shadowEntryToUse != null) {
             if (aggregatorContext != null)
-                aggregatorContext.scan(shadowEntryToUse.getEntryData(), entry.getUID(), entry.isTransient());
+                aggregatorContext.scan(context, shadowEntryToUse.getEntryData(), entry.getUID(), entry.isTransient());
             else
                 entryPacket = EntryPacketFactory.createFullPacket(shadowEntryToUse, template, entry.getUID());
         }else {
             IEntryData entryData = context.isNonBlockingReadOp() ? context.getLastRawMatchSnapshot() : entry.getEntryData();
             if (aggregatorContext != null)
-                aggregatorContext.scan(entryData, entry.getUID(), entry.isTransient());
+                aggregatorContext.scan(context, entryData, entry.getUID(), entry.isTransient());
             else
                 entryPacket = EntryPacketFactory.createFullPacket(entry, template, entryData);
         }
