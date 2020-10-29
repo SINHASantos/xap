@@ -29,6 +29,7 @@ import com.gigaspaces.metadata.SpaceMetadataException;
 import com.j_spaces.core.ExternalEntryPacket;
 import com.j_spaces.core.LocalCacheResponseEntryPacket;
 import com.j_spaces.core.OperationID;
+import com.j_spaces.core.cache.context.Context;
 import com.j_spaces.core.client.Modifiers;
 
 import java.io.Externalizable;
@@ -140,19 +141,19 @@ public class EntryPacketFactory {
         return packet;
     }
 
-    public static IEntryPacket createFullPacket(IEntryHolder entry, ITemplateHolder template) {
-        return createFullPacket(template, entry.getEntryData(), entry.getUID(), entry.isTransient());
+    public static IEntryPacket createFullPacket(Context context, IEntryHolder entry, ITemplateHolder template) {
+        return createFullPacket(context, template, entry.getEntryData(), entry.getUID(), entry.isTransient());
     }
 
-    public static IEntryPacket createFullPacket(IEntryHolder entry, ITemplateHolder template, IEntryData entryData) {
-        return createFullPacket(template, entryData, entry.getUID(), entry.isTransient());
+    public static IEntryPacket createFullPacket(Context context, IEntryHolder entry, ITemplateHolder template, IEntryData entryData) {
+        return createFullPacket(context, template, entryData, entry.getUID(), entry.isTransient());
     }
 
-    public static IEntryPacket createFullPacket(IEntryHolder entry, ITemplateHolder template, String uid) {
-        return createFullPacket(template, entry.getEntryData(), uid, entry.isTransient());
+    public static IEntryPacket createFullPacket(Context context, IEntryHolder entry, ITemplateHolder template, String uid) {
+        return createFullPacket(context, template, entry.getEntryData(), uid, entry.isTransient());
     }
 
-    public static IEntryPacket createFullPacket(ITemplateHolder template, IEntryData entryData, String uid, boolean isTransient) {
+    public static IEntryPacket createFullPacket(Context context, ITemplateHolder template, IEntryData entryData, String uid, boolean isTransient) {
         if (entryData.getEntryDataType() == EntryDataType.USER_TYPE) {
             if(entryData instanceof ViewEntryData){
                 return new LocalCacheResponseEntryPacket((UserTypeEntryData) ((ViewEntryData) entryData).getEntry(), uid);
@@ -164,6 +165,9 @@ public class EntryPacketFactory {
         byte[] binaryFields = null;
         if(entryData instanceof BinaryEntryData){
             binaryFields = ((BinaryEntryData) entryData).getSerializedFields();
+            if(context != null && context.getViewEntryData() != null && context.getViewEntryData().isViewOf(entryData)){
+                fixedPropertiesValues = context.getViewEntryData().getFixedPropertiesValues();
+            }
         } else {
             fixedPropertiesValues = entryData.getFixedPropertiesValues();
         }
@@ -203,7 +207,7 @@ public class EntryPacketFactory {
             case OBJECT_JAVA:
             case DOCUMENT_ENTRY:
                 if (!forceNotExternalizable && typeDesc.isExternalizable() && entryType.isConcrete() && !isReturnWeaklyTypeProperties) {
-                    if(binaryFields != null){
+                    if(fixedProperties == null && binaryFields != null){
                         fixedProperties = entryData.getFixedPropertiesValues();
                     }
                     return new ExternalizableEntryPacket(typeDesc, entryType, fixedProperties, entryData.getDynamicProperties(),
@@ -219,7 +223,7 @@ public class EntryPacketFactory {
             case OBJECT_DOTNET:
             case CPP:
             case PBS_OLD:
-                if(binaryFields != null){
+                if(fixedProperties == null && binaryFields != null){
                     fixedProperties = entryData.getFixedPropertiesValues();
                 }
                 return new PbsEntryPacket(typeDesc, entryType,

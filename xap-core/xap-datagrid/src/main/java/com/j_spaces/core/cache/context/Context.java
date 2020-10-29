@@ -1279,6 +1279,10 @@ public class Context {
         }
     }
 
+    public ViewEntryData getViewEntryData() {
+        return viewEntryData;
+    }
+
     public IEntryData getCacheViewEntryDataIfNeeded(IEntryData entryData) {
         if(entryData instanceof BinaryEntryData && viewEntryData != null && viewEntryData.isViewOf(entryData)){
             return viewEntryData;

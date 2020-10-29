@@ -66,7 +66,7 @@ public class EntryHolderAggregatorContext extends SpaceEntriesAggregatorContext 
 
     @Override
     public RawEntry getRawEntry() {
-        return EntryPacketFactory.createFullPacket(template, entryData, uid, isTransient);
+        return EntryPacketFactory.createFullPacket(null, template, entryData, uid, isTransient);
     }
 
 

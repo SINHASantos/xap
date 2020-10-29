@@ -187,8 +187,8 @@ public class SpaceDataEventManager implements ISpaceModeListener {
                                NotifyContext notifyContext, Context ctx) {
         if (executeBeforeNotifyTriggeredFilters(notifyContext, template)) {
             RemoteEvent event = oldEntry == null ?
-                    template.createRemoteEvent(entry, notifyContext.getNotifyType(), ctx.getOperationID(), _spaceProxy, ctx.isFromReplication()) :
-                    template.createRemoteEvent(entry, oldEntry, notifyContext.getNotifyType(), ctx.getOperationID(), _spaceProxy, ctx.isFromReplication());
+                    template.createRemoteEvent(ctx, entry, notifyContext.getNotifyType(), ctx.getOperationID(), _spaceProxy, ctx.isFromReplication()) :
+                    template.createRemoteEvent(ctx, entry, oldEntry, notifyContext.getNotifyType(), ctx.getOperationID(), _spaceProxy, ctx.isFromReplication());
 
             if (event != null) {
                 if (template.isGuaranteedNotification())
