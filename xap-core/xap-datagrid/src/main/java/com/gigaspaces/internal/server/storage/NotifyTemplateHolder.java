@@ -244,12 +244,12 @@ public class NotifyTemplateHolder extends TemplateHolder {
         return getUidToOperateBy() != null && NotifyModifiers.isMatchByID(getNotifyInfo().getNotifyType());
     }
 
-    public RemoteEvent createRemoteEvent(Context context, IEntryHolder entryHolder, NotifyActionType notifyType,
+    public RemoteEvent createRemoteEvent(IEntryHolder entryHolder, NotifyActionType notifyType,
                                          OperationID operationID, IJSpace spaceProxy, boolean fromReplication) {
-        return createRemoteEvent(context, entryHolder, null, notifyType, operationID, spaceProxy, fromReplication);
+        return createRemoteEvent(entryHolder, null, notifyType, operationID, spaceProxy, fromReplication);
     }
 
-    public RemoteEvent createRemoteEvent(Context context, IEntryHolder entryHolder, IEntryHolder oldEntryHolder, NotifyActionType notifyType,
+    public RemoteEvent createRemoteEvent(IEntryHolder entryHolder, IEntryHolder oldEntryHolder, NotifyActionType notifyType,
                                          OperationID operationID, IJSpace spaceProxy, boolean fromReplication) {
         final long seqNum = _sequenceNumber.get();
 
@@ -262,9 +262,9 @@ public class NotifyTemplateHolder extends TemplateHolder {
                     oldEntryPacket = TemplatePacketFactory.createUidPacket(oldEntryHolder.getUID(), oldEntryHolder.getEntryData().getVersion());
                 }
             } else {
-                entryPacket = EntryPacketFactory.createFullPacket(context, entryHolder, this);
+                entryPacket = EntryPacketFactory.createFullPacket(null, entryHolder, this);
                 if (notifyType.equals(NotifyActionType.NOTIFY_UNMATCHED) || (oldEntryHolder != null && (_notifyInfo.isReturnPrevValue()))) {
-                    oldEntryPacket = EntryPacketFactory.createFullPacket(context, oldEntryHolder, this);
+                    oldEntryPacket = EntryPacketFactory.createFullPacket(null, oldEntryHolder, this);
                 }
             }
             entryPacket.setOperationID(operationID);

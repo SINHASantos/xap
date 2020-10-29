@@ -19,6 +19,8 @@
  */
 package com.gigaspaces.internal.transport;
 
+import com.gigaspaces.client.storage_adapters.class_storage_adapters.ClassBinaryStorageAdapter;
+import com.gigaspaces.client.storage_adapters.class_storage_adapters.ClassBinaryStorageAdapterRegistry;
 import com.gigaspaces.internal.io.IOArrayException;
 import com.gigaspaces.internal.io.IOUtils;
 import com.gigaspaces.internal.metadata.EntryType;
@@ -27,6 +29,7 @@ import com.gigaspaces.internal.metadata.PropertyInfo;
 import com.gigaspaces.internal.query.ICustomQuery;
 import com.gigaspaces.internal.version.PlatformLogicalVersion;
 import com.j_spaces.core.EntrySerializationException;
+import com.j_spaces.kernel.ClassLoaderHelper;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -184,6 +187,9 @@ public class EntryPacket extends AbstractEntryPacket {
 
     public void setFieldsValues(Object[] values) {
         this._fixedProperties = values;
+        if(binaryFields != null){
+            binaryFields = null;
+        }
     }
 
     public Object getFieldValue(int index) {
@@ -197,6 +203,9 @@ public class EntryPacket extends AbstractEntryPacket {
     public void setFieldValue(int index, Object value) {
         try {
             getFieldValues()[index] = value;
+            if(binaryFields != null){
+                binaryFields = null;
+            }
         } catch (Exception e) {
             throw new IllegalStateException("The field values array was not properly set", e);
         }
@@ -238,11 +247,6 @@ public class EntryPacket extends AbstractEntryPacket {
         _customQuery = customQuery;
     }
 
-    @Override
-    public boolean isSerializeTypeDesc() {
-        return binaryFields != null || super.isSerializeTypeDesc();
-    }
-
     private static final short FLAG_CLASSNAME = 1 << 0;
     private static final short FLAG_UID = 1 << 1;
     private static final short FLAG_VERSION = 1 << 2;
@@ -256,6 +260,7 @@ public class EntryPacket extends AbstractEntryPacket {
     private static final short FLAG_CUSTOM_QUERY = 1 << 10;
     private static final short FLAG_DYNAMIC_PROPERTIES = 1 << 11;
     private static final short FLAG_BINARY_FIELDS= 1 << 12;
+    private static final short FLAG_CLASS_BINARY_STORAGE_ADAPTER= 1 << 13;
 
     private short buildFlags() {
         short flags = 0;
@@ -287,6 +292,9 @@ public class EntryPacket extends AbstractEntryPacket {
             flags |= FLAG_CUSTOM_QUERY;
         if (_dynamicProperties != null)
             flags |= FLAG_DYNAMIC_PROPERTIES;
+        if(_typeDesc.getClassBinaryStorageAdapter()!= null){
+            flags |= FLAG_CLASS_BINARY_STORAGE_ADAPTER;
+        }
 
         return flags;
     }
@@ -329,11 +337,18 @@ public class EntryPacket extends AbstractEntryPacket {
                 out.writeLong(_timeToLive);
             if (_multipleUIDs != null)
                 IOUtils.writeStringArray(out, _multipleUIDs);
+            if(_typeDesc.getClassBinaryStorageAdapter() != null){
+                IOUtils.writeString(out, _typeDesc.getClassBinaryStorageAdapter().getClass().getName());
+            }
             if(binaryFields != null) {
                 IOUtils.writeByteArray(out, binaryFields);
             }else if (_fixedProperties != null) {
                 try {
-                    IOUtils.writeObjectArrayCompressed(out, _fixedProperties);
+                    if(_typeDesc != null && _typeDesc.getClassBinaryStorageAdapter() != null){
+                        IOUtils.writeByteArray(out, _typeDesc.getClassBinaryStorageAdapter().toBinary(_typeDesc, _fixedProperties));
+                    }else {
+                        IOUtils.writeObjectArrayCompressed(out, _fixedProperties);
+                    }
                 } catch (IOArrayException e) {
                     throw createPropertySerializationException(e, true);
                 }
@@ -378,12 +393,23 @@ public class EntryPacket extends AbstractEntryPacket {
                 _timeToLive = in.readLong();
             if ((flags & FLAG_MULTIPLE_UIDS) != 0)
                 _multipleUIDs = IOUtils.readStringArray(in);
+
+
+            ClassBinaryStorageAdapter classBinaryStorageAdapter = null;
+            if((flags & FLAG_CLASS_BINARY_STORAGE_ADAPTER) != 0){
+                classBinaryStorageAdapter = ClassBinaryStorageAdapterRegistry.getInstance().getOrCreate((Class<? extends ClassBinaryStorageAdapter>) ClassLoaderHelper.loadClass(IOUtils.readString(in)));
+            }
+
             if((flags & FLAG_BINARY_FIELDS) != 0 ){
                 binaryFields = IOUtils.readByteArray(in);
             }
             if ((flags & FLAG_FIELDS_VALUES) != 0) {
                 try {
-                    _fixedProperties = IOUtils.readObjectArrayCompressed(in);
+                    if(classBinaryStorageAdapter != null){
+                        _fixedProperties = classBinaryStorageAdapter.fromBinary(_typeDesc, IOUtils.readByteArray(in));
+                    }else {
+                        _fixedProperties = IOUtils.readObjectArrayCompressed(in);
+                    }
                 } catch (IOArrayException e) {
                     throw createPropertySerializationException(e, false);
                 }

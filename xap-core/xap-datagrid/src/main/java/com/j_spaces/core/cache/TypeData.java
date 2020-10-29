@@ -1258,13 +1258,10 @@ public class TypeData {
     }
 
     private boolean isEqualProperties(IEntryData shadow, IEntryData old) {
-        if (shadow instanceof BinaryEntryData && old instanceof BinaryEntryData) {
-            if (((BinaryEntryData) shadow).getSerializedFields() == ((BinaryEntryData) old).getSerializedFields()) {
-                return true;
-            }
-            return Arrays.equals(((BinaryEntryData) shadow).getSerializedFields(), ((BinaryEntryData) old).getSerializedFields());
-        } else {
+        if (!(shadow instanceof BinaryEntryData)) {
             return shadow.getFixedPropertiesValues() == old.getFixedPropertiesValues();
+        } else {
+            return ((BinaryEntryData) shadow).getSerializedFields() == ((BinaryEntryData) old).getSerializedFields();
         }
     }
 

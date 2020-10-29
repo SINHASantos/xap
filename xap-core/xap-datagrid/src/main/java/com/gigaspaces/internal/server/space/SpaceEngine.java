@@ -5151,7 +5151,7 @@ public class SpaceEngine implements ISpaceModeListener , IClusterInfoChangedList
     private void performInitiatedEvictionTemplateOnEntryCoreSA(Context context, ITemplateHolder template,
                                                                IEntryHolder entry, IServerTypeDesc typeDesc)
             throws SAException, NoMatchException {
-        IEntryPacket ep = EntryPacketFactory.createFullPacket(context, entry, template, entry.getUID());
+        IEntryPacket ep = EntryPacketFactory.createFullPacket(context, entry, template);
 
         boolean fromReplication = context.isFromReplication();
         boolean shouldReplicate = false;
