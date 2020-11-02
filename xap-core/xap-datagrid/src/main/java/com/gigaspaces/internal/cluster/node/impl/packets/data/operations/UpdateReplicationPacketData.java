@@ -278,6 +278,10 @@ public class UpdateReplicationPacketData
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        if(_serializeFullContent){
+            getEntryPacket().getFieldValues();
+            getEntryPacket().setBinaryFields(null);
+        }
         super.writeExternal(out);
 
         if (LRMIInvocationContext.getEndpointLogicalVersion().lessThan(PlatformLogicalVersion.v9_1_0))

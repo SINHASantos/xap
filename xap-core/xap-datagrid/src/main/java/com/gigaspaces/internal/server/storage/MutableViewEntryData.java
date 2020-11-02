@@ -12,7 +12,7 @@ public class MutableViewEntryData extends ViewEntryData implements ITransactiona
     }
 
     public void view(ITransactionalEntryData entryData, Object[] fieldValues) {
-        super.view(entryData, fieldValues);
+        super.view(entryData, fieldValues.clone());
     }
 
     @Override

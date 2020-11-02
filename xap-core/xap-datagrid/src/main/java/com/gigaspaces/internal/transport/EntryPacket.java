@@ -292,9 +292,6 @@ public class EntryPacket extends AbstractEntryPacket {
             flags |= FLAG_CUSTOM_QUERY;
         if (_dynamicProperties != null)
             flags |= FLAG_DYNAMIC_PROPERTIES;
-        if(_typeDesc.getClassBinaryStorageAdapter()!= null){
-            flags |= FLAG_CLASS_BINARY_STORAGE_ADAPTER;
-        }
 
         return flags;
     }
@@ -337,18 +334,11 @@ public class EntryPacket extends AbstractEntryPacket {
                 out.writeLong(_timeToLive);
             if (_multipleUIDs != null)
                 IOUtils.writeStringArray(out, _multipleUIDs);
-            if(_typeDesc.getClassBinaryStorageAdapter() != null){
-                IOUtils.writeString(out, _typeDesc.getClassBinaryStorageAdapter().getClass().getName());
-            }
             if(binaryFields != null) {
                 IOUtils.writeByteArray(out, binaryFields);
             }else if (_fixedProperties != null) {
                 try {
-                    if(_typeDesc != null && _typeDesc.getClassBinaryStorageAdapter() != null){
-                        IOUtils.writeByteArray(out, _typeDesc.getClassBinaryStorageAdapter().toBinary(_typeDesc, _fixedProperties));
-                    }else {
-                        IOUtils.writeObjectArrayCompressed(out, _fixedProperties);
-                    }
+                    IOUtils.writeObjectArrayCompressed(out, _fixedProperties);
                 } catch (IOArrayException e) {
                     throw createPropertySerializationException(e, true);
                 }
@@ -394,22 +384,12 @@ public class EntryPacket extends AbstractEntryPacket {
             if ((flags & FLAG_MULTIPLE_UIDS) != 0)
                 _multipleUIDs = IOUtils.readStringArray(in);
 
-
-            ClassBinaryStorageAdapter classBinaryStorageAdapter = null;
-            if((flags & FLAG_CLASS_BINARY_STORAGE_ADAPTER) != 0){
-                classBinaryStorageAdapter = ClassBinaryStorageAdapterRegistry.getInstance().getOrCreate((Class<? extends ClassBinaryStorageAdapter>) ClassLoaderHelper.loadClass(IOUtils.readString(in)));
-            }
-
             if((flags & FLAG_BINARY_FIELDS) != 0 ){
                 binaryFields = IOUtils.readByteArray(in);
             }
             if ((flags & FLAG_FIELDS_VALUES) != 0) {
                 try {
-                    if(classBinaryStorageAdapter != null){
-                        _fixedProperties = classBinaryStorageAdapter.fromBinary(_typeDesc, IOUtils.readByteArray(in));
-                    }else {
-                        _fixedProperties = IOUtils.readObjectArrayCompressed(in);
-                    }
+                    _fixedProperties = IOUtils.readObjectArrayCompressed(in);
                 } catch (IOArrayException e) {
                     throw createPropertySerializationException(e, false);
                 }
