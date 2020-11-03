@@ -1261,9 +1261,7 @@ public class TypeData {
         if (!(shadow instanceof BinaryEntryData)) {
             return shadow.getFixedPropertiesValues() == old.getFixedPropertiesValues();
         } else {
-            byte[] shadowSerialized = ((BinaryEntryData) shadow).getSerializedFields();
-            byte[] oldSerialized = ((BinaryEntryData) old).getSerializedFields();
-            return shadowSerialized == oldSerialized || Arrays.equals(shadowSerialized, oldSerialized);
+            return ((BinaryEntryData) shadow).getSerializedFields() == ((BinaryEntryData) old).getSerializedFields();
         }
     }
 

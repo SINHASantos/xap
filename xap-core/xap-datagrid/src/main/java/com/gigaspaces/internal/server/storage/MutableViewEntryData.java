@@ -2,6 +2,7 @@ package com.gigaspaces.internal.server.storage;
 
 import com.j_spaces.core.server.transaction.EntryXtnInfo;
 
+import java.util.Arrays;
 import java.util.Map;
 
 public class MutableViewEntryData extends ViewEntryData implements ITransactionalEntryData {
@@ -12,7 +13,7 @@ public class MutableViewEntryData extends ViewEntryData implements ITransactiona
     }
 
     public void view(ITransactionalEntryData entryData, Object[] fieldValues) {
-        super.view(entryData, fieldValues.clone());
+        super.view(entryData, Arrays.copyOf(fieldValues, fieldValues.length));
     }
 
     @Override

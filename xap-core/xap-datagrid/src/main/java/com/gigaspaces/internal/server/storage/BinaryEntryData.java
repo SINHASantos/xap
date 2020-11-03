@@ -82,7 +82,7 @@ public class BinaryEntryData implements ITransactionalEntryData {
 
     @Override
     public ITransactionalEntryData createCopy(int newVersion, long newExpiration, EntryXtnInfo newEntryXtnInfo, boolean shallowCloneData) {
-        byte[] data = shallowCloneData ? serializedFields : this.serializedFields.clone() ;
+        byte[] data = Arrays.copyOf(this.serializedFields, this.serializedFields.length);
         return new BinaryEntryData(data,_dynamicProperties, this._entryTypeDesc, newVersion, newExpiration, newEntryXtnInfo);
     }
 
