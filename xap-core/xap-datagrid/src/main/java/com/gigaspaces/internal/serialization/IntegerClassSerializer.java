@@ -36,11 +36,12 @@ public class IntegerClassSerializer implements IClassSerializer<Integer> {
 
     public Integer read(ObjectInput in)
             throws IOException, ClassNotFoundException {
-        return in.readInt();
+        return IOUtils.readInt(in);
     }
 
     public void write(ObjectOutput out, Integer obj)
             throws IOException {
-        out.writeInt(obj);
+
+        IOUtils.writeInt(out,obj);
     }
 }
