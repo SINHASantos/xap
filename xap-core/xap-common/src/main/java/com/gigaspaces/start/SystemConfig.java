@@ -105,6 +105,7 @@ public class SystemConfig {
      */
     private SystemConfig(String[] confArgs) throws ConfigurationException {
         locations = SystemLocations.singleton();
+        Locale.setDefault(Locale.US);
 
         if (confArgs == null || confArgs.length == 0) {
             this.configArgs = new String[]{"-"};

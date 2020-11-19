@@ -48,8 +48,6 @@ public class HsqlDbReporter extends MetricReporter {
 
     public HsqlDbReporter(HsqlDBReporterFactory factory, SharedJdbcConnectionWrapper connectionWrapper) {
         super(factory);
-        Locale.setDefault(Locale.US);
-
         this.connectionWrapper = connectionWrapper;
         this.dbTypeString = factory.getDbTypeString();
         try {
