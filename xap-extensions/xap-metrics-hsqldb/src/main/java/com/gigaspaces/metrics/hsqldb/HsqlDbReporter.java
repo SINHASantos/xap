@@ -117,8 +117,10 @@ public class HsqlDbReporter extends MetricReporter {
             String message = e.getMessage();
             _logger.debug("Report to {} failed: {}", tableName, message);
             if (message != null && message.contains(EXCEPTION_MESSAGE_MISSING_OBJECT + tableName)) {
+                System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " first if");
                 createTable(con, tableName, value, tags);
             } else if (message != null && message.contains(EXCEPTION_MESSAGE_MISSING_OBJECT)) {
+                System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " second if");
                 String missingColumnName = message.replace( EXCEPTION_MESSAGE_MISSING_OBJECT, "" ).trim();
                 Map<String,Object> clonedTags = new HashMap<>( tags.getTags() );
                 if( VM_TABLE_COLUMNS_WITH_POSSIBLE_NULL_VALUES.contains( missingColumnName ) ){
@@ -126,6 +128,7 @@ public class HsqlDbReporter extends MetricReporter {
                 }
                 addMissingColumns(con, tableName, clonedTags);
             } else {
+                System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " third if");
                 _logger.warn("Failed to insert row [{}] using values [{}]" , insertSQL,
                               Arrays.toString(values.toArray(new Object[0])), e);
             }
