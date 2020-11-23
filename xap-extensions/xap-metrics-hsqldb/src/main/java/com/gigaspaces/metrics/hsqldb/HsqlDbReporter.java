@@ -41,8 +41,6 @@ public class HsqlDbReporter extends MetricReporter {
     private final Map<String,PreparedStatement> _preparedStatements = new HashMap<>();
     private final Set<PreparedStatement> _statementsForBatch = new LinkedHashSet<>();
 
-    private final static String EXCEPTION_MESSAGE_MISSING_OBJECT = "user lacks privilege or object not found: ";
-
     private final static Set<String> VM_TABLE_COLUMNS_WITH_POSSIBLE_NULL_VALUES =
                     new HashSet<>( Arrays.asList( TableColumnNames.PU_NAME_COLUMN_NAME.toUpperCase(),
                                 TableColumnNames.PU_INSTANCE_ID_COLUMN_NAME.toUpperCase() ) );
@@ -119,7 +117,7 @@ public class HsqlDbReporter extends MetricReporter {
             _logger.debug("Report to {} failed: {}", tableName, message);
             if (e.getErrorCode() == -(ErrorCode.X_42501)) {
                 System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " first if");
-                createTable(con, tableName, value, tags);
+                createTable(con, tableName);
             } else {
                 System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " third if");
                 _logger.warn("Failed to insert row [{}] using values [{}]" , insertSQL,
@@ -218,50 +216,17 @@ public class HsqlDbReporter extends MetricReporter {
         }
     }
 
-    private String getDbType(Object value) {
-        if (value instanceof String) {
-            return dbTypeString;
-        }
-        if (value instanceof Timestamp) {
-            return "TIMESTAMP";
-        }
-        if (value instanceof Boolean) {
-            return "BOOLEAN";
-        }
-        if (value instanceof Number) {
-            if (value instanceof Long) {
-                return "BIGINT";
-            }
-            if (value instanceof Integer) {
-                return "INTEGER";
-            }
-            if (value instanceof Short) {
-                return "SMALLINT";
-            }
-            if (value instanceof Double) {
-                return "REAL";
-            }
-            if (value instanceof Float) {
-                return "REAL";
-            }
-
-            return "NUMERIC";
-        }
-
-        return dbTypeString;
-    }
-
     private String getDbType(JDBCType type) {
-        if (type == JDBCType.VARCHAR) { //todo find all cases
+        if (type == JDBCType.VARCHAR) {
             return dbTypeString;
         } else {
             return type.getName();
         }
     }
 
-    private void createTable(Connection con, String tableName, Object value, MetricTagsSnapshot tags) {
+    private void createTable(Connection con, String tableName) {
         try (Statement statement = con.createStatement()) {
-            String sqlCreateTable = generateCreateTableQuery(tableName, value, tags);
+            String sqlCreateTable = generateCreateTableQuery(tableName);
             statement.executeUpdate(sqlCreateTable);
             _logger.debug("Table [{}] successfully created", tableName);
 
@@ -271,53 +236,6 @@ public class HsqlDbReporter extends MetricReporter {
         } catch (SQLException e) {
             _logger.warn("Failed to create table {}", tableName, e);
         }
-    }
-
-    private void addMissingColumns(Connection con, String tableName, Map<String, Object> tags) {
-        try {
-            Map<String, String> missingColumns = calcMissingColumns(con, tableName, tags);
-            missingColumns.forEach((columnName, columnType) -> {
-                String sql = "ALTER TABLE " + tableName + " ADD " + columnName + " " + columnType;
-                _logger.debug("Add column query: [{}]", sql);
-                try (Statement statement = con.createStatement()) {
-                    statement.executeUpdate(sql);
-                    _logger.debug("Added new column [{} {}] to table {}", columnName, columnType, tableName);
-                } catch (SQLSyntaxErrorException e) {
-                    //since sometimes at teh same times can be fet attempts to add the same column to the same table
-                    if (e.getMessage() == null || !e.getMessage().contains("object name already exists in statement")) {
-                        _logger.warn("Failed to execute add column query [{}]", sql, e);
-                    }
-                } catch (SQLException e) {
-                    _logger.warn("Failed to execute add column query: [{}]", sql, e);
-                }
-            });
-        } catch (SQLException e) {
-            _logger.warn("Failed to add missing columns to table {}", tableName, e);
-        }
-    }
-
-    private Map<String,String> calcMissingColumns(Connection con, String tableName, Map<String, Object> tags) throws SQLException {
-        Set<String> existingColumns = new HashSet<>();
-        try (ResultSet rs = con.getMetaData().getColumns(null, null, tableName, null)) {
-            while (rs.next()) {
-                existingColumns.add(rs.getString("COLUMN_NAME").toUpperCase());
-            }
-        }
-
-        PredefinedSystemMetrics predefinedSystemMetrics = PredefinedSystemMetrics.valueOf(tableName);
-        List<String> columnForInsert = predefinedSystemMetrics.getColumns();
-
-        Map<String,String> missingColumns = new LinkedHashMap<>(); //preserve insertion order
-        tags.forEach((name, value) -> {
-            if (!existingColumns.contains(name.toUpperCase())) {
-                if( columnForInsert == null || columnForInsert.contains( name ) ) {
-                    missingColumns.put(name, getDbType(value));
-                }
-            }
-        });
-
-        _logger.debug("Missing columns: {}", missingColumns);
-        return missingColumns;
     }
 
     private String generateInsertQuery(String tableName, long timestamp, Object value, MetricTagsSnapshot tags, List<Object> values, List<String> columnsList ) {
@@ -375,21 +293,20 @@ public class HsqlDbReporter extends MetricReporter {
         values.add( value );
     }
 
-    private String generateCreateTableQuery(String tableName, Object value, MetricTagsSnapshot tags) {
+    private String generateCreateTableQuery(String tableName) {
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE CACHED TABLE ").append(tableName).append(" (");
 
         PredefinedSystemMetrics predefinedSystemMetrics = PredefinedSystemMetrics.valueOf(tableName);
         List<String> columnForInsert = predefinedSystemMetrics.getColumns();
 
-        columnForInsert.forEach(columnName ->
-            {
-                if( columnForInsert.contains( columnName ) ) {
-                    sb.append(columnName).append(' ').append(getDbType(TableColumnTypesEnum.getJDBCType(columnName))).append(',');
-                }
+        columnForInsert.forEach(columnName -> {
+            if( columnForInsert.contains( columnName ) ) {
+                sb.append(columnName).append(' ').append(getDbType(TableColumnTypesEnum.getJDBCType(columnName))).append(',');
             }
-        );
+        });
 
+//        sb.append("VALUE ").append(getDbType(value));
         sb.append(')');
 
         String result = sb.toString();
