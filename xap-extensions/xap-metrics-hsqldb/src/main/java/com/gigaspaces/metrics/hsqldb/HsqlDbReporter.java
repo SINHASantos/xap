@@ -117,7 +117,7 @@ public class HsqlDbReporter extends MetricReporter {
             _logger.debug("Report to {} failed: {}", tableName, message);
             if (e.getErrorCode() == -(ErrorCode.X_42501)) {
                 System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " first if");
-                createTable(con, tableName);
+                createTable(con, tableName, value);
             } else {
                 System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " third if");
                 _logger.warn("Failed to insert row [{}] using values [{}]" , insertSQL,
@@ -216,6 +216,39 @@ public class HsqlDbReporter extends MetricReporter {
         }
     }
 
+    private String getDbType(Object value) {
+        if (value instanceof String) {
+            return dbTypeString;
+        }
+        if (value instanceof Timestamp) {
+            return "TIMESTAMP";
+        }
+        if (value instanceof Boolean) {
+            return "BOOLEAN";
+        }
+        if (value instanceof Number) {
+            if (value instanceof Long) {
+                return "BIGINT";
+            }
+            if (value instanceof Integer) {
+                return "INTEGER";
+            }
+            if (value instanceof Short) {
+                return "SMALLINT";
+            }
+            if (value instanceof Double) {
+                return "REAL";
+            }
+            if (value instanceof Float) {
+                return "REAL";
+            }
+
+            return "NUMERIC";
+        }
+
+        return dbTypeString;
+    }
+
     private String getDbType(JDBCType type) {
         if (type == JDBCType.VARCHAR) {
             return dbTypeString;
@@ -224,9 +257,9 @@ public class HsqlDbReporter extends MetricReporter {
         }
     }
 
-    private void createTable(Connection con, String tableName) {
+    private void createTable(Connection con, String tableName, Object value) {
         try (Statement statement = con.createStatement()) {
-            String sqlCreateTable = generateCreateTableQuery(tableName);
+            String sqlCreateTable = generateCreateTableQuery(tableName, value);
             statement.executeUpdate(sqlCreateTable);
             _logger.debug("Table [{}] successfully created", tableName);
 
@@ -293,7 +326,7 @@ public class HsqlDbReporter extends MetricReporter {
         values.add( value );
     }
 
-    private String generateCreateTableQuery(String tableName) {
+    private String generateCreateTableQuery(String tableName, Object value) {
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE CACHED TABLE ").append(tableName).append(" (");
 
@@ -306,7 +339,7 @@ public class HsqlDbReporter extends MetricReporter {
             }
         });
 
-//        sb.append("VALUE ").append(getDbType(value));
+        sb.append("VALUE ").append(getDbType(value));
         sb.append(')');
 
         String result = sb.toString();

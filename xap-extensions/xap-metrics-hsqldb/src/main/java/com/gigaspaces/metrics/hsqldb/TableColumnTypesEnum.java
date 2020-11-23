@@ -12,7 +12,6 @@ public enum TableColumnTypesEnum implements TableColumnNames {
 
     TIME( TIME_COLUMN_NAME, JDBCType.TIMESTAMP ),
     PU_INSTANCE_ID( PU_INSTANCE_ID_COLUMN_NAME,JDBCType.VARCHAR ),
-    VALUE( VALUE_COLUMN_NAME, JDBCType.DOUBLE), //todo inspect
     SPACE_INSTANCE_ID(SPACE_INSTANCE_ID_COLUMN_NAME, JDBCType.VARCHAR ),
     DATA_TYPE_NAME (DATA_TYPE_NAME_COLUMN_NAME, JDBCType.VARCHAR ),
     SPACE_NAME( SPACE_NAME_COLUMN_NAME, JDBCType.VARCHAR ),
@@ -49,10 +48,6 @@ public enum TableColumnTypesEnum implements TableColumnNames {
 
     public static int getSqlType(String columnName) {
         return TableColumnTypesEnum.valueOf(columnName.toUpperCase()).getSqlType();
-    }
-
-    public static String getSqlTypeName(String columnName) {
-        return TableColumnTypesEnum.valueOf(columnName.toUpperCase()).getSqlTypeName();
     }
 
     public static JDBCType getJDBCType(String columnName) {
