@@ -141,6 +141,7 @@ public class HsqlDbReporter extends MetricReporter {
         } catch (SQLSyntaxErrorException e) {
             _logger.debug("Report to {} failed: {}", tableName, e.getMessage());
             if (e.getErrorCode() == -(ErrorCode.X_42501)) {
+                //indicates that we should create a table - since GS14322
                 createTable(connection, tableName, value);
                 statement = getOrCreatePreparedStatement(insertSQL, connection);
             } else {
@@ -335,12 +336,10 @@ public class HsqlDbReporter extends MetricReporter {
         sb.append("CREATE CACHED TABLE ").append(tableName).append(" (");
 
         PredefinedSystemMetrics predefinedSystemMetrics = PredefinedSystemMetrics.valueOf(tableName);
-        List<String> columnForInsert = predefinedSystemMetrics.getColumns();
+        List<String> columns = predefinedSystemMetrics.getColumns();
 
-        columnForInsert.forEach(columnName -> {
-            if( columnForInsert.contains( columnName ) ) {
-                sb.append(columnName).append(' ').append(getDbType(TableColumnTypesEnum.getJDBCType(columnName))).append(',');
-            }
+        columns.forEach(columnName -> {
+            sb.append(columnName).append(' ').append(getDbType(TableColumnTypesEnum.getJDBCType(columnName))).append(',');
         });
 
         sb.append("VALUE ").append(getDbType(value));
