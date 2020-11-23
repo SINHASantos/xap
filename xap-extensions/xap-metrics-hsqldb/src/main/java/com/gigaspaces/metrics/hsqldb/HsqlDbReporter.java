@@ -102,8 +102,7 @@ public class HsqlDbReporter extends MetricReporter {
         String insertSQL = "";
         try {
             insertSQL = generateInsertQuery(tableName, snapshot.getTimestamp(), value, tags, values,columns);
-
-            PreparedStatement statement = getOrCreatePreparedStatement(insertSQL, con);
+            PreparedStatement statement = handleGetOrCreatePreparedStatement(value, tableName, con, insertSQL);
             for (int i=0 ; i < values.size() ; i++) {
                 String columnName = i >= columns.size() ? null : columns.get( i );
                 setParameter(statement, i + 1, values.get( i ), columnName );
@@ -113,37 +112,42 @@ public class HsqlDbReporter extends MetricReporter {
             _logger.trace("After adding insert to batch [{}]", insertSQL);
             _statementsForBatch.add( statement );
         } catch (SQLSyntaxErrorException e) {
-            String message = e.getMessage();
-            _logger.debug("Report to {} failed: {}", tableName, message);
-            if (e.getErrorCode() == -(ErrorCode.X_42501)) {
-                System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " first if");
-                createTable(con, tableName, value);
-            } else {
-                System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " third if");
-                _logger.warn("Failed to insert row [{}] using values [{}]" , insertSQL,
-                              Arrays.toString(values.toArray(new Object[0])), e);
-            }
+            _logger.warn("Failed to insert row [{}] using values [{}]" , insertSQL,
+                    Arrays.toString(values.toArray(new Object[0])), e);
         } catch (SQLTransientConnectionException | SQLNonTransientConnectionException e){
             _logger.warn("Failed to insert row [{}] using values [{}], resetting connection...", insertSQL,
-                    Arrays.toString(values.toArray(new Object[0])), e);
+                Arrays.toString(values.toArray(new Object[0])), e);
            handleConnectionError(con);
         } catch (SQLException e) {
             //internal hsqldb exception, in later versions becomes General error
             if( e.toString().contains( "NullPointerException" ) ) {
                 _logger.info("Failed to insert row [{}] using values [{}] due to SQLException", insertSQL,
-                           Arrays.toString(values.toArray(new Object[0])) );
+                   Arrays.toString(values.toArray(new Object[0])) );
+            } else {
+                _logger.warn("Failed to insert row [{}] using values [{}]", insertSQL,
+                   Arrays.toString(values.toArray(new Object[0])), e);
             }
-            else {
-                _logger
-                    .warn("Failed to insert row [{}] using values [{}]", insertSQL,
-                           Arrays.toString(values.toArray(new Object[0])), e);
+        } catch( Throwable t ){
+            _logger.warn("Failed to insert row [{}] using values [{}] to table [{}]", insertSQL,
+                Arrays.toString(values.toArray(new Object[0])), tableName, t);
+        }
+    }
+
+    private PreparedStatement handleGetOrCreatePreparedStatement(Object value, String tableName, Connection connection, String insertSQL) throws SQLException {
+        PreparedStatement statement;
+        try {
+            statement = getOrCreatePreparedStatement(insertSQL, connection);
+
+        } catch (SQLSyntaxErrorException e) {
+            _logger.debug("Report to {} failed: {}", tableName, e.getMessage());
+            if (e.getErrorCode() == -(ErrorCode.X_42501)) {
+                createTable(connection, tableName, value);
+                statement = getOrCreatePreparedStatement(insertSQL, connection);
+            } else {
+                throw e;
             }
         }
-        catch( Throwable t ){
-            _logger
-                    .warn("Failed to insert row [{}] using values [{}] to table [{}]", insertSQL,
-                            Arrays.toString(values.toArray(new Object[0])), tableName, t);
-        }
+        return statement;
     }
 
     @Override
