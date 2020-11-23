@@ -20,6 +20,7 @@ import com.gigaspaces.metrics.MetricRegistrySnapshot;
 import com.gigaspaces.metrics.MetricReporter;
 import com.gigaspaces.metrics.MetricTagsSnapshot;
 import com.j_spaces.kernel.SystemProperties;
+import org.hsqldb.error.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,17 +117,9 @@ public class HsqlDbReporter extends MetricReporter {
         } catch (SQLSyntaxErrorException e) {
             String message = e.getMessage();
             _logger.debug("Report to {} failed: {}", tableName, message);
-            if (message != null && message.contains(EXCEPTION_MESSAGE_MISSING_OBJECT + tableName)) {
+            if (e.getErrorCode() == -(ErrorCode.X_42501)) {
                 System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " first if");
                 createTable(con, tableName, value, tags);
-            } else if (message != null && message.contains(EXCEPTION_MESSAGE_MISSING_OBJECT)) {
-                System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " second if");
-                String missingColumnName = message.replace( EXCEPTION_MESSAGE_MISSING_OBJECT, "" ).trim();
-                Map<String,Object> clonedTags = new HashMap<>( tags.getTags() );
-                if( VM_TABLE_COLUMNS_WITH_POSSIBLE_NULL_VALUES.contains( missingColumnName ) ){
-                    clonedTags.put( missingColumnName, null );
-                }
-                addMissingColumns(con, tableName, clonedTags);
             } else {
                 System.out.println("[MISHEL-DEBUG*************] " + " error code = " + e.getErrorCode() + " third if");
                 _logger.warn("Failed to insert row [{}] using values [{}]" , insertSQL,
@@ -216,8 +209,8 @@ public class HsqlDbReporter extends MetricReporter {
             statement.setBoolean(index, (Boolean)value);
         }
         else if (value == null && columnName != null) {
-            TableColumnTypesEnum tableColumnType = TableColumnTypesEnum.valueOf(columnName.toUpperCase());
-            statement.setNull( index, tableColumnType.getSqlType() );
+            int sqlType = TableColumnTypesEnum.getSqlType(columnName);
+            statement.setNull( index, sqlType );
         }
         else{
             _logger.warn("Value [{}] of class [{}] with index [{}] was not set", value,
@@ -256,6 +249,14 @@ public class HsqlDbReporter extends MetricReporter {
         }
 
         return dbTypeString;
+    }
+
+    private String getDbType(JDBCType type) {
+        if (type == JDBCType.VARCHAR) { //todo find all cases
+            return dbTypeString;
+        } else {
+            return type.getName();
+        }
     }
 
     private void createTable(Connection con, String tableName, Object value, MetricTagsSnapshot tags) {
@@ -377,20 +378,18 @@ public class HsqlDbReporter extends MetricReporter {
     private String generateCreateTableQuery(String tableName, Object value, MetricTagsSnapshot tags) {
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE CACHED TABLE ").append(tableName).append(" (");
-        sb.append("TIME TIMESTAMP,");
 
         PredefinedSystemMetrics predefinedSystemMetrics = PredefinedSystemMetrics.valueOf(tableName);
         List<String> columnForInsert = predefinedSystemMetrics.getColumns();
 
-        tags.getTags().forEach((columnName, columnValue) ->
+        columnForInsert.forEach(columnName ->
             {
-                if( columnForInsert == null || columnForInsert.contains( columnName ) ) {
-                    sb.append(columnName).append(' ').append(getDbType(columnValue)).append(',');
+                if( columnForInsert.contains( columnName ) ) {
+                    sb.append(columnName).append(' ').append(getDbType(TableColumnTypesEnum.getJDBCType(columnName))).append(',');
                 }
             }
         );
 
-        sb.append("VALUE ").append(getDbType(value));
         sb.append(')');
 
         String result = sb.toString();
