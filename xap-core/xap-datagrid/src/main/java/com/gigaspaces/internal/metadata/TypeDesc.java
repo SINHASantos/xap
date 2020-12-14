@@ -16,7 +16,6 @@
 
 package com.gigaspaces.internal.metadata;
 
-import com.gigaspaces.annotation.pojo.BinaryStorageAdapterType;
 import com.gigaspaces.annotation.pojo.FifoSupport;
 import com.gigaspaces.client.storage_adapters.class_storage_adapters.ClassBinaryStorageAdapter;
 import com.gigaspaces.client.storage_adapters.class_storage_adapters.ClassBinaryStorageAdapterRegistry;
@@ -83,7 +82,6 @@ public class TypeDesc implements ITypeDesc {
     private Map<String, SpaceIndex> _indexes;
     private TypeQueryExtensions queryExtensionsInfo;
     private ClassBinaryStorageAdapter classBinaryStorageAdapter;
-    private BinaryStorageAdapterType binaryStorageAdapterType;
     private int[] positionsForScanning;
 
     private int _sequenceNumberFixedPropertyPos;  //-1  if none
@@ -139,7 +137,7 @@ public class TypeDesc implements ITypeDesc {
                     StorageType storageType, EntryType entryType, Class<? extends Object> objectClass,
                     Class<? extends ExternalEntry> externalEntryClass, Class<? extends SpaceDocument> documentWrapperClass,
                     String dotnetDocumentWrapperType, byte dotnetStorageType, boolean blobstoreEnabled, String sequenceNumberPropertyName,
-                    TypeQueryExtensions queryExtensionsInfo, Class<? extends ClassBinaryStorageAdapter> binaryStorageAdapter, BinaryStorageAdapterType binaryStorageAdapterType) {
+                    TypeQueryExtensions queryExtensionsInfo, Class<? extends ClassBinaryStorageAdapter> binaryStorageAdapter) {
         _typeName = typeName;
         _codeBase = codeBase;
         _superTypesNames = superTypesNames;
@@ -176,17 +174,17 @@ public class TypeDesc implements ITypeDesc {
                 _dotnetDocumentWrapperTypeName = _documentWrapperClassName;
         }
 
-        validate();
-        validateAndUpdateSequenceNumberInfo(sequenceNumberPropertyName);
-        initializeV9_0_0();
-        addFifoGroupingIndexesIfNeeded(_indexes, _fifoGroupingName, _fifoGroupingIndexes);
         if(binaryStorageAdapter != null) {
             this.classBinaryStorageAdapter = ClassBinaryStorageAdapterRegistry.getInstance().getOrCreate(binaryStorageAdapter);
-            this.binaryStorageAdapterType = binaryStorageAdapterType == null ? BinaryStorageAdapterType.EXCLUDE_INDEXES : binaryStorageAdapterType;
             initHybridProperties();
         } else {
             positionsForScanning = IntStream.range(0,_fixedProperties.length).toArray();
         }
+
+        validate();
+        validateAndUpdateSequenceNumberInfo(sequenceNumberPropertyName);
+        initializeV9_0_0();
+        addFifoGroupingIndexesIfNeeded(_indexes, _fifoGroupingName, _fifoGroupingIndexes);
     }
 
     private void initHybridProperties() {
@@ -277,9 +275,11 @@ public class TypeDesc implements ITypeDesc {
             for (String fifoGroupingIndexPath : _fifoGroupingIndexes)
                 if (isSameProperty(fifoGroupingIndexPath, propertyName))
                     assertSupportsMatching(property, "SpaceFifoGroupingIndex");
-            // validate primitives with storage type
-            if (ReflectionUtils.isSpacePrimitive(property.getType().getName()))
-                assertObjectStorageType(property, "Primitive property type " + property.getType().getName());
+            if (classBinaryStorageAdapter == null) {
+                // validate primitives with storage type
+                if (ReflectionUtils.isSpacePrimitive(property.getType().getName()))
+                    assertObjectStorageType(property, "Primitive property type " + property.getType().getName());
+            }
             // validate indexes with storage type
             for (String indexName : _indexes.keySet()) {
                 SpaceIndexType indexType = _indexes.get(indexName).getIndexType();
@@ -294,7 +294,9 @@ public class TypeDesc implements ITypeDesc {
     }
 
     private void assertSupportsMatching(PropertyInfo property, String errMsg) {
-        assertObjectStorageType(property, errMsg);
+        if (classBinaryStorageAdapter == null) {
+            assertObjectStorageType(property, errMsg);
+        }
         if (!property.supportsEqualsMatching())
             throw new SpaceMetadataValidationException(_typeName, property, errMsg + " cannot be used with storage adapter which does not support matching: " + property.getStorageAdapterName());
     }
@@ -915,7 +917,6 @@ public class TypeDesc implements ITypeDesc {
             String storageAdapterClassName = IOUtils.readString(in);
             if (storageAdapterClassName != null) {
                 classBinaryStorageAdapter = ClassBinaryStorageAdapterRegistry.getInstance().getOrCreate(ClassLoaderHelper.loadClass(storageAdapterClassName));
-                binaryStorageAdapterType = BinaryStorageAdapterType.fromCode(in.readByte());
                 initHybridProperties();
             } else {
                 positionsForScanning = IntStream.range(0,_fixedProperties.length).toArray();
@@ -1179,11 +1180,6 @@ public class TypeDesc implements ITypeDesc {
     }
 
     @Override
-    public BinaryStorageAdapterType getBinaryStorageType() {
-        return binaryStorageAdapterType;
-    }
-
-    @Override
     public void writeExternal(ObjectOutput out)
             throws IOException {
         writeExternal(out, LRMIInvocationContext.getEndpointLogicalVersion(), false);
@@ -1261,7 +1257,6 @@ public class TypeDesc implements ITypeDesc {
         if (version.greaterOrEquals(PlatformLogicalVersion.v15_8_0)) {
             if(classBinaryStorageAdapter != null){
                 IOUtils.writeString(out, classBinaryStorageAdapter.getClass().getName());
-                out.writeByte(BinaryStorageAdapterType.toCode(binaryStorageAdapterType));
             }else {
                 IOUtils.writeString(out, null);
             }
