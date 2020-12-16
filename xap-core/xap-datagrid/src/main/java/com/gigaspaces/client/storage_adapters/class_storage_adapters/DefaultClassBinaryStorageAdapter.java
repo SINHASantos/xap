@@ -6,6 +6,7 @@ import com.gigaspaces.internal.io.IOUtils;
 import com.gigaspaces.metadata.SpaceTypeDescriptor;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Map;
 
 public class DefaultClassBinaryStorageAdapter extends ClassBinaryStorageAdapter {

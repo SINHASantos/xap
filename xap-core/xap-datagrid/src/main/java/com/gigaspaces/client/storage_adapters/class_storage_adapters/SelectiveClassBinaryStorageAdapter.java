@@ -91,7 +91,7 @@ public class SelectiveClassBinaryStorageAdapter extends ClassBinaryStorageAdapte
         Object[] objects = new Object[indexes.length];
 
         for (int i = 0; i < indexes.length; ++i){
-            objects[i] = getFieldAtIndex(typeDescriptor, serializedFields, i); //todo - can be more efficient with loop during the iterating on the stream
+            objects[i] = getFieldAtIndex(typeDescriptor, serializedFields, i); //todo - can be more efficient with loop during iterating on the stream
         }
         return objects;
     }
