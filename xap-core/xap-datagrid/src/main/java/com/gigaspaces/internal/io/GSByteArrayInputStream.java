@@ -181,14 +181,4 @@ public class GSByteArrayInputStream extends InputStream {
         return _position;
     }
 
-    public long setPosition(int n) {
-        if ( n > _count)
-            n = _count;
-
-        if (n < 0)
-            return 0;
-
-        _position = n;
-        return n;
-    }
 }
