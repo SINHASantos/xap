@@ -31,7 +31,7 @@ public class SelectiveClassBinaryStorageAdapter extends ClassBinaryStorageAdapte
                 } else {
                     int count = bos.getCount();
                     if (count > Short.MAX_VALUE){
-                        throw new IOException("value must be under /beneath max shirt value");
+                        throw new IOException("Fields serialized array must be smaller then 'short' max value");
                     }
                     positions[i] = (short) count;
                     IOUtils.getIClassSerializer(typeDescriptor.getFixedProperty(i).getType()).write(out, fields[i]);
