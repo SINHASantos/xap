@@ -83,22 +83,20 @@ public class SelectiveClassBinaryStorageAdapter extends ClassBinaryStorageAdapte
                return null;
            }
 
-           bis.skip(position - bis.getPosition());
+           bis.setPosition(position);
            return IOUtils.getIClassSerializer(typeDescriptor.getFixedProperty(index).getType()).read(in);
         }
     }
 
 
-        //todo-limitation ascend order
     @Override
     public Object[] getFieldsAtIndexes(SpaceTypeDescriptor typeDescriptor, byte[] serializedFields, int... indexes) throws IOException, ClassNotFoundException {
         try (GSByteArrayInputStream bis = new GSByteArrayInputStream(serializedFields); GSObjectInputStream in = new GSObjectInputStream(bis)) {
-            Arrays.sort(indexes);
             short[] positions = new short[indexes.length];
             Object[] objects = new Object[indexes.length];
 
             for (int i = 0; i < indexes.length; ++i){
-                bis.skip((indexes[i]  * 2) - bis.getPosition() + 1);
+                bis.setPosition(indexes[i] * 2 + 1);
                 positions[i] = (short) IOUtils.getIClassSerializer(Short.class).read(in);
             }
 
@@ -106,7 +104,7 @@ public class SelectiveClassBinaryStorageAdapter extends ClassBinaryStorageAdapte
                 if (positions[i] == -1){
                     objects[i] = null;
                 } else {
-                    bis.skip((positions[i] - bis.getPosition()));
+                    bis.setPosition(positions[i]);
                     objects[i] = IOUtils.getIClassSerializer(typeDescriptor.getFixedProperty(indexes[i]).getType()).read(in);
                 }
             }
