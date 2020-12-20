@@ -182,7 +182,7 @@ public class GSByteArrayInputStream extends InputStream {
     }
 
     /**
-     * Sets <code>position</code> on the input stream. If requested position is larger or equals to buffer length,
+     * Sets <code>position</code> on the input stream. If the requested position is larger or equals to buffer length,
      * position will be set to the final byte of the input stream.
      *
      * @param position the input position.

@@ -19,7 +19,7 @@ public class DefaultClassBinaryStorageAdapter extends ClassBinaryStorageAdapter 
             byte[] NonNullFieldsBitMap =  new byte[numOfFields / 8 + modulo];
 
             for (int i = 0; i < NonNullFieldsBitMap.length; ++i){
-                IOUtils.getIClassSerializer(Byte.class).write(out, NonNullFieldsBitMap[i]); //todo- warning
+                IOUtils.getIClassSerializer(Byte.class).write(out, NonNullFieldsBitMap[i]);
             }
 
             for (int i = 0; i < numOfFields; ++i) {
