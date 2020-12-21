@@ -31,7 +31,7 @@ public class SelectiveClassBinaryStorageAdapter extends ClassBinaryStorageAdapte
                 } else {
                     int count = bos.getCount();
                     if (count > Short.MAX_VALUE){
-                        throw new IOException("Fields serialized array must be smaller then 'short' max value");
+                        throw new IOException("Property [" + typeDescriptor.getFixedProperty(i).getType().getName() + "] overflows serialized buffer. Position is [" + count + "]");
                     }
                     positions[i] = (short) count;
                     IOUtils.getIClassSerializer(typeDescriptor.getFixedProperty(i).getType()).write(out, fields[i]);
@@ -44,8 +44,8 @@ public class SelectiveClassBinaryStorageAdapter extends ClassBinaryStorageAdapte
                 IOUtils.getIClassSerializer(Short.class).write(out, positions[j]);
             }
 
-            byte[] positionsMap = bos.toByteArray();
-            System.arraycopy(positionsMap, 0, serializedFields, 1, numOfFields * 2);
+            byte[] positionsByteMap = bos.toByteArray();
+            System.arraycopy(positionsByteMap, 0, serializedFields, 1, numOfFields * 2);
 
             return serializedFields;
         }
