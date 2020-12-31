@@ -48,7 +48,6 @@ public class PropertyInfo implements SpacePropertyDescriptor{
     private final Class<?> _type;
     private final SpaceDocumentSupport _documentSupport;
     private final StorageType _storageType;
-    private final boolean binaryStorageClass;
     private final PropertyStorageAdapter _storageAdapter;
     private final byte _dotnetStorageType;
     private int originalIndex;
@@ -63,10 +62,27 @@ public class PropertyInfo implements SpacePropertyDescriptor{
         this._documentSupport = builder.documentSupport != SpaceDocumentSupport.DEFAULT
                 ? builder.documentSupport
                 : SpaceDocumentSupportHelper.getDefaultDocumentSupport(_type);
-        this.binaryStorageClass = builder.binaryStorageClass;
-        this._storageType = calcEffectiveStorageType(builder.storageType, builder.defaultStorageType, binaryStorageClass, _spacePrimitive);
-        this._storageAdapter = initStorageAdapter(builder.storageAdapterClass, _storageType, binaryStorageClass);
+        this._storageType = calcEffectiveStorageType(builder.storageType, builder.defaultStorageType, builder.binaryStorageClass, _spacePrimitive);
+        this._storageAdapter = initStorageAdapter(builder.storageAdapterClass, _storageType, builder.binaryStorageClass);
         this._dotnetStorageType = builder.dotnetStorageType;
+    }
+
+    private PropertyInfo(ObjectInput input, PlatformLogicalVersion version) throws IOException, ClassNotFoundException {
+        this._name = IOUtils.readString(input);
+        this._typeName = IOUtils.readString(input);
+        this._type = IOUtils.readObject(input);
+        this._primitive = ReflectionUtils.isPrimitive(_typeName);
+        this._spacePrimitive = ReflectionUtils.isSpacePrimitive(_typeName);
+        this._documentSupport = SpaceDocumentSupportHelper.fromCode(input.readByte());
+        this._storageType = StorageType.fromCode(input.readInt());
+        this._dotnetStorageType = input.readByte();
+        String storageAdapterClassName = null;
+        if (version.greaterOrEquals(PlatformLogicalVersion.v15_2_0)) {
+            storageAdapterClassName = IOUtils.readString(input);
+        }
+        this._storageAdapter = storageAdapterClassName != null ? PropertyStorageAdapterRegistry.getInstance()
+                .getOrCreate(ClassLoaderHelper.loadClass(storageAdapterClassName)) : null;
+
     }
 
     private static StorageType calcEffectiveStorageType(StorageType storageType, StorageType classStorageType, boolean binaryStorageClass, boolean spacePrimitive) {
@@ -197,33 +213,12 @@ public class PropertyInfo implements SpacePropertyDescriptor{
         out.writeByte(_dotnetStorageType);
         // New in 15.2.0: property storage adapter
         if (version.greaterOrEquals(PlatformLogicalVersion.v15_2_0)) {
-            out.writeBoolean(binaryStorageClass);
             IOUtils.writeString(out, _storageAdapter != null ? _storageAdapter.getClass().getName() : null);
         }
     }
 
     static PropertyInfo deserialize(ObjectInput in, PlatformLogicalVersion version) throws IOException, ClassNotFoundException {
-        Builder builder = new Builder(IOUtils.readString(in));
-        builder.typeName = IOUtils.readString(in);
-        builder.type = IOUtils.readObject(in);
-        // Removed in 8.0.4: primitive is calculated from typename.
-        //boolean isPrimitive = in.readBoolean();
-        // New in 8.0.1: read SpaceDocumentSupport code
-        builder.documentSupport = SpaceDocumentSupportHelper.fromCode(in.readByte());
-        // New in 9.0.0: read storage type code
-        builder.storageType = StorageType.fromCode(in.readInt());
-        // Changed in 8.0.4: read dotnet storage type as code instead of object.
-        builder.dotnetStorageType = in.readByte();
-        // New in 15.2.0: property storage adapter
-        if (version.greaterOrEquals(PlatformLogicalVersion.v15_2_0)) {
-            builder.binaryStorageClass = in.readBoolean();
-            String storageAdapterClassName = IOUtils.readString(in);
-            if (storageAdapterClassName != null) {
-                builder.storageAdapter(ClassLoaderHelper.loadClass(storageAdapterClassName));
-            }
-        }
-
-        return builder.build();
+        return new PropertyInfo(in, version);
     }
 
     void setHybridIndex(int index) {
