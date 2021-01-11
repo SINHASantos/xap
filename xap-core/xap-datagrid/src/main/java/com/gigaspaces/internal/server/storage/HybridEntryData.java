@@ -101,7 +101,7 @@ public class HybridEntryData implements IBinaryEntryData {
 
     @Override
     public Object getFixedPropertyValue(int index) {
-        int[] optimizedPositions = _entryTypeDesc.getTypeDesc().getOptimizedPositions();
+        int[] optimizedPositions = _entryTypeDesc.getTypeDesc().getPositionsForSplitting();
         if (optimizedPositions[index] < 0) {
             try {
                 return _entryTypeDesc.getTypeDesc().getClassBinaryStorageAdapter()
@@ -118,7 +118,7 @@ public class HybridEntryData implements IBinaryEntryData {
 
     @Override
     public void setFixedPropertyValue(int index, Object value) {
-        int[] optimizedPositions = _entryTypeDesc.getTypeDesc().getOptimizedPositions();
+        int[] optimizedPositions = _entryTypeDesc.getTypeDesc().getPositionsForSplitting();
         if (optimizedPositions[index] < 0) {
             try {
                 this.serializedProperties = _entryTypeDesc.getTypeDesc().getClassBinaryStorageAdapter()
@@ -142,7 +142,7 @@ public class HybridEntryData implements IBinaryEntryData {
             try {
                 Object[] deserializedFields = typeDesc.getClassBinaryStorageAdapter().fromBinary(typeDesc, serializedProperties);
                 int i = 0;
-                int[] optimizedPositions = typeDesc.getOptimizedPositions();
+                int[] optimizedPositions = typeDesc.getPositionsForSplitting();
                 for (int j = 0; j < optimizedPositions.length; j++) {
                     if (optimizedPositions[j] < 0) {
                         fields[i] = deserializedFields[(optimizedPositions[j] * -1) -1];

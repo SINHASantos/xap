@@ -60,7 +60,7 @@ public class HybridPropertiesHolder implements Externalizable {
         }
 
         Object[] fields = new Object[typeDesc.getProperties().length];
-        int[] optimizedPositions = typeDesc.getOptimizedPositions();
+        int[] optimizedPositions = typeDesc.getPositionsForSplitting();
         for (int i = 0; i < optimizedPositions.length; i++) {
             if (optimizedPositions[i] < 0) {
                 fields[i] = this.unpackedSerializedProperties[(optimizedPositions[i] * -1) - 1];
@@ -73,7 +73,7 @@ public class HybridPropertiesHolder implements Externalizable {
     }
 
     public Object getFixedProperty(ITypeDesc typeDesc, int position) {
-        int[] optimizedPositions = typeDesc.getOptimizedPositions();
+        int[] optimizedPositions = typeDesc.getPositionsForSplitting();
         if (optimizedPositions[position] < 0) {
             if (!unpacked) {
                 unpackSerializedProperties(typeDesc);
@@ -206,7 +206,7 @@ public class HybridPropertiesHolder implements Externalizable {
 
 
     public void setFixedProperty(ITypeDesc typeDesc, int position, Object value) {
-        int[] optimizedPositions = typeDesc.getOptimizedPositions();
+        int[] optimizedPositions = typeDesc.getPositionsForSplitting();
         if (optimizedPositions[position] < 0) {
             if (!unpacked) {
                 unpackSerializedProperties(typeDesc);
@@ -227,7 +227,7 @@ public class HybridPropertiesHolder implements Externalizable {
 
         this.nonSerializedProperties = nonSerializedProperties == null ? new Object[typeDesc.getNonSerializedProperties().length] : nonSerializedProperties;
         this.unpackedSerializedProperties = unpackedSerializedProperties == null ? new Object[typeDesc.getSerializedProperties().length] : unpackedSerializedProperties;
-        int[] optimizedPositions = typeDesc.getOptimizedPositions();
+        int[] optimizedPositions = typeDesc.getPositionsForSplitting();
         if (values != null && values.length != 0) {
             for (int i = 0; i < optimizedPositions.length; i++) {
                 if (optimizedPositions[i] < 0) {

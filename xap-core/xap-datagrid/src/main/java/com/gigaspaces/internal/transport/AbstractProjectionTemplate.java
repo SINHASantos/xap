@@ -88,7 +88,7 @@ public abstract class AbstractProjectionTemplate implements Externalizable {
                 final Object[] projectedNonSerialized = new Object[typeDescriptor.getNonSerializedProperties().length];
                 final Object[] projectedSerialized = new Object[typeDescriptor.getSerializedProperties().length];
                 if (fixedPropertiesIndexes != null) {
-                    int[] optimizedPositions = typeDescriptor.getOptimizedPositions();
+                    int[] optimizedPositions = typeDescriptor.getPositionsForSplitting();
                     for (int index : fixedPropertiesIndexes){
                         if(optimizedPositions[index] > 0){
                             projectedNonSerialized[optimizedPositions[index] -1] = entryPacket.getFieldValue(index);

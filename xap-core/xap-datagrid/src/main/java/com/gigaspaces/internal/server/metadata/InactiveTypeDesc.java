@@ -100,7 +100,7 @@ import java.util.Set;
     }
 
     @Override
-    public int[] getOptimizedPositions() {
+    public int[] getPositionsForSplitting() {
         return null;
     }
 

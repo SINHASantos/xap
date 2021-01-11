@@ -113,5 +113,5 @@ public interface ITypeDesc extends SpaceTypeDescriptor, IDotnetTypeDescDetails, 
 
     int[] getPositionsForScanning();
 
-    int[] getOptimizedPositions();
+    int[] getPositionsForSplitting();
 }
