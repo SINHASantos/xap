@@ -48,7 +48,10 @@ import com.j_spaces.jdbc.builder.QueryTemplatePacket;
 import net.jini.core.transaction.server.ServerTransaction;
 import org.slf4j.Logger;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * This class represents a template in a J-Space. Each instance of this class contains a reference
@@ -802,13 +805,15 @@ public class TemplateHolder extends AbstractSpaceItem implements ITemplateHolder
         final long overrideGeneration = entryHolder.getOverrideGeneration();
         final long committedGeneration = entryHolder.getCommittedGeneration();
         final boolean isDirtyEntry = committedGeneration == -1;
+        context.setMatchOnDirtyEntry(isDirtyEntry);
         final boolean isOverridenEntry = overrideGeneration != -1;
         final boolean isDirtyRead = cacheManager.getEngine().indicateDirtyRead(this);
         if (isActiveRead(cacheManager.getEngine(), context)) { // active read
             return isDirtyRead || !isDirtyEntry; // after the lock retrieving latest not overriden entry to rematch
         }
-        final boolean committedIsCompleted = !isDirtyEntry && (committedGeneration <= completedGeneration)
-                && (!mvccGenerationsState.isUncompletedGeneration(committedGeneration));
+        final boolean committedIsCompleted = !isDirtyEntry
+                && (committedGeneration <= completedGeneration)
+                && !mvccGenerationsState.isUncompletedGeneration(committedGeneration);
         if (isHistoricalRead(cacheManager.getEngine(), context)) { // historical read
             final boolean isOverridenEntryGenerationValidForHistoricalRead = !isOverridenEntry
                     || (overrideGeneration > completedGeneration)
@@ -839,12 +844,15 @@ public class TemplateHolder extends AbstractSpaceItem implements ITemplateHolder
             if (isReadOperation() && overrideGeneration > completedGeneration && !mvccGenerationsState.isUncompletedGeneration(overrideGeneration)) {
                 return false;
             }
-            if (!this.isReadOperation() && mvccGenerationsState.isUncompletedGeneration(committedGeneration)) {
+            if (!this.isReadOperation()
+                    && (committedGeneration <= mvccGenerationsState.getNextGeneration())
+                    && mvccGenerationsState.isUncompletedGeneration(committedGeneration)) {
                 throw new MVCCModifyOnUncompletedGenerationException(mvccGenerationsState, committedGeneration, entryHolder, getTemplateOperation());
             }
             if (isOverridenEntry
                     && overrideGeneration > completedGeneration
-                    && !mvccGenerationsState.isUncompletedGeneration(overrideGeneration) && this.getEntryId() != null) {
+                    && !mvccGenerationsState.isUncompletedGeneration(overrideGeneration)
+                    && this.getEntryId() != null) {
                 throw new MVCCEntryModifyConflictException(mvccGenerationsState, entryHolder, getTemplateOperation()); // overriden can't be modified
             }
             if (committedGeneration > completedGeneration

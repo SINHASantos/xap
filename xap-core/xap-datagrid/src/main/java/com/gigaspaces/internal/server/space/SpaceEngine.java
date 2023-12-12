@@ -81,7 +81,6 @@ import com.gigaspaces.internal.server.space.iterator.ServerIteratorInfo;
 import com.gigaspaces.internal.server.space.iterator.ServerIteratorRequestInfo;
 import com.gigaspaces.internal.server.space.iterator.ServerIteratorsManager;
 import com.gigaspaces.internal.server.space.metadata.SpaceTypeManager;
-import com.gigaspaces.internal.server.space.mvcc.MVCCGenerationsState;
 import com.gigaspaces.internal.server.space.mvcc.MVCCSpaceEngineHandler;
 import com.gigaspaces.internal.server.space.mvcc.exception.MVCCEntryModifyConflictException;
 import com.gigaspaces.internal.server.space.operations.WriteEntriesResult;
@@ -4708,7 +4707,10 @@ public class SpaceEngine implements ISpaceModeListener , IClusterInfoChangedList
                 MVCCEntryHolder activeData = (tmpl.isReadCommittedRequested() && (templateTransaction == null || templateTransaction != entry.getWriteLockOwner())) ?
                             mvccShellEntryCacheInfoByUid.getLatestCommittedOrHollow() :
                             mvccShellEntryCacheInfoByUid.getEntryHolder();
-                if (activeData != null && activeData != entry) {
+                if (context.isMatchOnDirtyEntry() && !tmpl.isReadOperation() && templateTransaction != entry.getWriteLockOwner()) {
+                    throw new MVCCEntryModifyConflictException(context.getMVCCGenerationsState(), (MVCCEntryHolder) entry, tmpl.getTemplateOperation());
+                }
+                if ((activeData != null && activeData != entry)) {
                     if (!tmpl.isActiveRead(this, context)) {
                         if ((entry.getWriteLockOperation() == SpaceOperations.TAKE
                                 || entry.getWriteLockOperation() == SpaceOperations.TAKE_IE)

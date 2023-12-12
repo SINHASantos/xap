@@ -252,6 +252,7 @@ public class Context {
 
     //mvcc
     private MVCCGenerationsState mvccGenerationsState;
+    private boolean isMatchOnDirtyEntry; //indicate that entry was dirty when matched.
 
     public Context() {
     }
@@ -488,6 +489,8 @@ public class Context {
         _fromClustered = false;
         entryTieredState = null;
         templateTieredState = null;
+        mvccGenerationsState = null;
+        isMatchOnDirtyEntry = false;
     }
 
     public void setOnMatchUid(String uid)
@@ -1374,4 +1377,11 @@ public class Context {
         }
     }
 
+    public boolean isMatchOnDirtyEntry() {
+        return isMatchOnDirtyEntry;
+    }
+
+    public void setMatchOnDirtyEntry(boolean matchOnDirtyEntry) {
+        isMatchOnDirtyEntry = matchOnDirtyEntry;
+    }
 }
