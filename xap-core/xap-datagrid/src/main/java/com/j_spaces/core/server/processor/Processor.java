@@ -28,7 +28,7 @@ import com.gigaspaces.internal.server.space.FifoSearch;
 import com.gigaspaces.internal.server.space.SpaceEngine;
 import com.gigaspaces.internal.server.space.events.NotifyContextsHolder;
 import com.gigaspaces.internal.server.space.events.UpdateNotifyContextHolder;
-import com.gigaspaces.internal.server.space.mvcc.exception.MVCCGenerationConflictRuntimeException;
+import com.gigaspaces.internal.server.space.mvcc.exception.MVCCGenerationInternalRuntimeException;
 import com.gigaspaces.internal.server.space.operations.WriteEntryResult;
 import com.gigaspaces.internal.server.storage.IEntryHolder;
 import com.gigaspaces.internal.server.storage.ITemplateHolder;
@@ -519,7 +519,7 @@ public class Processor implements IConsumerObject<BusPacket<Processor>> {
 
         } catch (Exception ex) {
             LogLevel level = LogLevel.SEVERE;
-            if (ex instanceof MVCCGenerationConflictRuntimeException) {
+            if (ex instanceof MVCCGenerationInternalRuntimeException) {
                 level = LogLevel.DEBUG;
             }
             if (level.isEnabled(_logger)) {
@@ -818,7 +818,7 @@ public class Processor implements IConsumerObject<BusPacket<Processor>> {
             }
         } catch (Exception ex) {
             LogLevel level = LogLevel.SEVERE;
-            if (ex instanceof ProtectiveModeException || ex instanceof MVCCGenerationConflictRuntimeException)
+            if (ex instanceof ProtectiveModeException || ex instanceof MVCCGenerationInternalRuntimeException)
                 level = LogLevel.DEBUG;
             else if (ex instanceof ChangeInternalException) {
                 ex = ((ChangeInternalException) ex).getInternalException();
@@ -1039,7 +1039,7 @@ public class Processor implements IConsumerObject<BusPacket<Processor>> {
             }
         } catch (Exception ex) {
             LogLevel level = LogLevel.SEVERE;
-            if (ex instanceof ProtectiveModeException || ex instanceof MVCCGenerationConflictRuntimeException)
+            if (ex instanceof ProtectiveModeException || ex instanceof MVCCGenerationInternalRuntimeException)
                 level = LogLevel.DEBUG;
             else if (ex instanceof ChangeInternalException) {
                 ex = ((ChangeInternalException) ex).getInternalException();
@@ -2384,7 +2384,7 @@ public class Processor implements IConsumerObject<BusPacket<Processor>> {
             }
         } catch (Exception ex) {
             LogLevel level = LogLevel.SEVERE;
-            if (ex instanceof ProtectiveModeException || ex instanceof MVCCGenerationConflictRuntimeException)
+            if (ex instanceof ProtectiveModeException || ex instanceof MVCCGenerationInternalRuntimeException)
                 level = LogLevel.DEBUG;
             else if (ex instanceof ChangeInternalException) {
                 ex = ((ChangeInternalException) ex).getInternalException();
@@ -2641,7 +2641,7 @@ public class Processor implements IConsumerObject<BusPacket<Processor>> {
             }
         } catch (Exception ex) {
             LogLevel level = LogLevel.SEVERE;
-            if (ex instanceof ProtectiveModeException || ex instanceof MVCCGenerationConflictRuntimeException)
+            if (ex instanceof ProtectiveModeException || ex instanceof MVCCGenerationInternalRuntimeException)
                 level = LogLevel.DEBUG;
             else if (ex instanceof ChangeInternalException) {
                 ex = ((ChangeInternalException) ex).getInternalException();

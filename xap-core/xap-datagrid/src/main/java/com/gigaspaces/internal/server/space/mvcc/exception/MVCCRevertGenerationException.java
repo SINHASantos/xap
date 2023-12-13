@@ -1,6 +1,6 @@
 package com.gigaspaces.internal.server.space.mvcc.exception;
 
-public class MVCCRevertGenerationException extends MVCCGenerationConflictRuntimeException {
+public class MVCCRevertGenerationException extends MVCCGenerationInternalRuntimeException {
 
     private static final long serialVersionUID = -602018298200803915L;
 

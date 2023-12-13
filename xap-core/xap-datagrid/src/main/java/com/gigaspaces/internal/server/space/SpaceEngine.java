@@ -1346,6 +1346,7 @@ public class SpaceEngine implements ISpaceModeListener , IClusterInfoChangedList
         context.setPrefetchedNonBlobStoreEntries(prefetchedNonBlobStoreEntries);
         context.applyOperationContext(sc);
         context.applyMVCCGenerationsState(isMvccEnabled(), txnEntry, sc);
+        _cacheManager.validateMVCCGenerationConsistency(sc, operationModifiers);
 
         if(take && Modifiers.contains(operationModifiers,Modifiers.BACKUP_ONLY)){
             context.setBackupOnly();
@@ -1369,6 +1370,8 @@ public class SpaceEngine implements ISpaceModeListener , IClusterInfoChangedList
         // wait on Answer
         if (!callBackMode && !answerSetByThisThread && !tHolder.hasAnswer())
             waitForBlockingAnswer(timeout, tHolder.getAnswerHolder(), startTime, tHolder);
+
+        _cacheManager.validateMVCCGenerationConsistency(sc, operationModifiers);
 
         if (answerSetByThisThread) {
             tHolder.getAnswerHolder().throwExceptionIfExists();
@@ -2108,6 +2111,8 @@ public class SpaceEngine implements ISpaceModeListener , IClusterInfoChangedList
             context.setOperationID(template.getOperationID());
             context.applyOperationContext(sc);
             context.applyMVCCGenerationsState(isMvccEnabled(), txnEntry, sc);
+            _cacheManager.validateMVCCGenerationConsistency(sc, operationModifiers);
+
             if (take && txn == null && _cacheManager.isBlobStoreCachePolicy() && _cacheManager.useBlobStoreBulks()) {//can we exploit blob-store bulking ?
                 context.setBlobStoreBulkInfo(new BlobStoreBulkInfo(_cacheManager, true /*takeMultipleBulk*/));
             }
@@ -2137,6 +2142,8 @@ public class SpaceEngine implements ISpaceModeListener , IClusterInfoChangedList
         // wait on Answer
         if (!callBackMode && !answerSetByThisThread && !tHolder.hasAnswer())
             waitForBlockingAnswer(timeout, tHolder.getAnswerHolder(), startTime, tHolder);
+
+        _cacheManager.validateMVCCGenerationConsistency(sc, operationModifiers);
 
         if (answerSetByThisThread) {
             tHolder.getAnswerHolder().setNumOfEntriesMatched(numOfEntriesMatched);

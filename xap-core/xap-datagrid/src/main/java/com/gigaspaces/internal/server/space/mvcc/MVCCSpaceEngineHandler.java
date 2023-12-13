@@ -142,8 +142,8 @@ public class MVCCSpaceEngineHandler {
                     .orElse(false);
             if (exists) {
                 if (_spaceEngine.getLogger().isDebugEnabled())
-                    _spaceEngine.getLogger().debug("Ignore mvcc entry [{}] replication as generation younger than [{}] exists",
-                            uid, mvccGenerationsState.getCompletedGeneration());
+                    _spaceEngine.getLogger().debug("Ignore mvcc entry [{}] replication as entry with generation younger than [{}] exists",
+                            uid, mvccGenerationsState.getNextGeneration());
             }
             return exists;
         }

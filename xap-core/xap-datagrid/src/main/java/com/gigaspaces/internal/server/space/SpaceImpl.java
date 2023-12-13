@@ -80,7 +80,7 @@ import com.gigaspaces.internal.server.space.demote.DemoteHandler;
 import com.gigaspaces.internal.server.space.executors.SpaceActionExecutor;
 import com.gigaspaces.internal.server.space.iterator.ServerIteratorRequestInfo;
 import com.gigaspaces.internal.server.space.mvcc.MVCCUtils;
-import com.gigaspaces.internal.server.space.mvcc.exception.MVCCGenerationConflictRuntimeException;
+import com.gigaspaces.internal.server.space.mvcc.exception.MVCCGenerationInternalRuntimeException;
 import com.gigaspaces.internal.server.space.operations.SpaceOperationsExecutor;
 import com.gigaspaces.internal.server.space.operations.WriteEntriesResult;
 import com.gigaspaces.internal.server.space.operations.WriteEntryResult;
@@ -1979,7 +1979,7 @@ public class SpaceImpl extends AbstractService implements IRemoteSpace, IInterna
         if (!(e instanceof ProtectiveModeException)
                 && !(e instanceof ConsistencyLevelViolationException)
                 && !(e instanceof QuiesceException)
-                && !(e instanceof MVCCGenerationConflictRuntimeException)
+                && !(e instanceof MVCCGenerationInternalRuntimeException)
                 && _logger.isErrorEnabled())
             _logger.error(e.toString(), e);
         return e;

@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -171,7 +172,7 @@ public class MVCCCleanupManager {
                 Map<Object, MVCCShellEntryCacheInfo> idEntriesMap = typeData.getIdField().getUniqueEntriesStore();
                 for (MVCCShellEntryCacheInfo shellEntryCacheInfo : idEntriesMap.values()) {
                     int deletedEntriesPerUid = 0;
-                    int totalCommittedVersions = shellEntryCacheInfo.getTotalCommittedGenertions();
+                    int totalCommittedVersions = shellEntryCacheInfo.getTotalCommittedGenerations();
                     // clean latest pEntry from the deque if it's expired and uncompleted
                     if (removeNextOnMatch(shellEntryCacheInfo, generationState, true)) {
                         deletedEntriesPerUid++;
@@ -204,11 +205,11 @@ public class MVCCCleanupManager {
                 return false;
             }
             MVCCEntryHolder entry = pEntry.getEntryHolder();
-            if (matchToRemove(entry, generationState, shellEntryCacheInfo.getTotalCommittedGenertions(), cleanLatestUncompleted)) {
+            if (matchToRemove(entry, generationState, shellEntryCacheInfo.getTotalCommittedGenerations(), cleanLatestUncompleted)) {
                 ILockObject entryLock = _cacheManager.getLockManager().getLockObject(entry);
                 try {
                     synchronized (entryLock) {
-                        if (matchToRemove(entry, generationState, shellEntryCacheInfo.getTotalCommittedGenertions(), cleanLatestUncompleted) &&
+                        if (matchToRemove(entry, generationState, shellEntryCacheInfo.getTotalCommittedGenerations(), cleanLatestUncompleted) &&
                                 shellEntryCacheInfo.getGenerationCacheInfo(cleanLatestUncompleted) == pEntry) { // check that matched entry the same as before lock
                             shellEntryCacheInfo.removeCommittedEntryGeneration(cleanLatestUncompleted);
                             _cacheManager.getMVCCHandler().updateLDEntriesCounter(shellEntryCacheInfo, entry, false, cleanLatestUncompleted);
@@ -225,6 +226,14 @@ public class MVCCCleanupManager {
                             if (_logger.isTraceEnabled()) {
                                 _logger.trace("Entry {} was cleaned", entry);
                             }
+                            if (!cleanLatestUncompleted && !entry.isLogicallyDeleted())  {
+                                MVCCEntryHolder oldestEntry = Optional.ofNullable(shellEntryCacheInfo.getOldestGenerationCacheInfo())
+                                        .map(MVCCEntryCacheInfo::getEntryHolder).orElse(null);
+                                if (oldestEntry != null
+                                        && oldestEntry.getCommittedGeneration() > _cacheManager.getMVCCHandler().getOldestConsistentGeneration()) {
+                                    _cacheManager.getMVCCHandler().setOldestConsistentGeneration(oldestEntry.getCommittedGeneration());
+                                }
+                            }
                             return true;
                         }
                     }
@@ -240,16 +249,18 @@ public class MVCCCleanupManager {
 
         private boolean matchToRemove(MVCCEntryHolder entry, MVCCGenerationsState generationState, int totalCommittedGens, boolean cleanLatestUncompleted) {
             if (!entry.isMaybeUnderXtn()) {
-                if (isLifetimeLimitExceeded(entry)) {
-                    if (cleanLatestUncompleted) { // return true if entry exprited and uncompleted
+                if (isLifetimeLimitExceeded(entry)) { // expired
+                    if (cleanLatestUncompleted) { // uncompleted
                         return generationState.isUncompletedGeneration(entry.getCommittedGeneration());
                     }
-                    if ((!generationState.isUncompletedGeneration(entry.getCommittedGeneration())) // committed uncompleted
-                            && (entry.getOverrideGeneration() != -1 && !generationState.isUncompletedGeneration(entry.getOverrideGeneration()) // not active data and override gen not uncompleted
-                                    || entry.isLogicallyDeleted())) { // active completed logically deleted
+                    //committed completed and ((not active data and override gen completed) or (its active committed and logically deleted))
+                    if ((!generationState.isUncompletedGeneration(entry.getCommittedGeneration()))
+                            && (entry.getOverrideGeneration() != -1 && !generationState.isUncompletedGeneration(entry.getOverrideGeneration())
+                                    || entry.isLogicallyDeleted())) {
                         return true;
                     }
-                } else if (totalCommittedGens > _historicalEntriesLimit) {
+                } else if (totalCommittedGens > _historicalEntriesLimit) { // reach historical limit
+                    // not active completed data and override gen completed
                     if ((entry.getOverrideGeneration() != -1
                             && !generationState.isUncompletedGeneration(entry.getCommittedGeneration())
                             && !generationState.isUncompletedGeneration(entry.getOverrideGeneration()))) { // not active data and override gen not uncompleted

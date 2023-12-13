@@ -3,7 +3,7 @@ package com.gigaspaces.internal.server.space.mvcc.exception;
 import com.gigaspaces.internal.server.space.mvcc.MVCCGenerationsState;
 import com.j_spaces.core.cache.mvcc.MVCCEntryHolder;
 
-public class MVCCModifyOnUncompletedGenerationException extends MVCCGenerationConflictRuntimeException {
+public class MVCCModifyOnUncompletedGenerationException extends MVCCGenerationInternalRuntimeException {
 
     private static final long serialVersionUID = -29067180051845042L;
 

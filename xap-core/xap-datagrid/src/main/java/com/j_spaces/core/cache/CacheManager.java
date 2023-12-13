@@ -3754,6 +3754,12 @@ public class CacheManager extends AbstractCacheManager
         _mvccCacheManagerHandler.handleDisconnectOldLogicallyDeletedMVCCEntryGenerationFromTransaction(context, entry, xtnEntry);
     }
 
+    public void validateMVCCGenerationConsistency(SpaceContext sc, int modifiers) {
+        if (isMVCCEnabled() && sc != null) {
+            _mvccCacheManagerHandler.validateMVCCReadWithExpiredGeneration(sc.getMVCCGenerationsState(), modifiers);
+        }
+    }
+
     /**
      * INITIALLOAD INFO.
      */

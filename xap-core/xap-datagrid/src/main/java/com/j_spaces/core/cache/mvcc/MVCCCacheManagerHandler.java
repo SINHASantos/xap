@@ -1,7 +1,10 @@
 package com.j_spaces.core.cache.mvcc;
 
+import com.gigaspaces.internal.server.space.mvcc.MVCCGenerationsState;
+import com.gigaspaces.internal.server.space.mvcc.exception.MVCCReadWithExpiredGenerationException;
 import com.gigaspaces.internal.server.storage.IEntryData;
 import com.gigaspaces.internal.server.storage.IEntryHolder;
+import com.j_spaces.core.SpaceContext;
 import com.j_spaces.core.SpaceOperations;
 import com.j_spaces.core.XtnEntry;
 import com.j_spaces.core.cache.CacheManager;
@@ -9,16 +12,20 @@ import com.j_spaces.core.cache.IEntryCacheInfo;
 import com.j_spaces.core.cache.TypeData;
 import com.j_spaces.core.cache.XtnData;
 import com.j_spaces.core.cache.context.Context;
+import com.j_spaces.core.client.ReadModifiers;
 import com.j_spaces.core.sadapter.SAException;
 import com.j_spaces.core.server.transaction.EntryXtnInfo;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MVCCCacheManagerHandler {
 
 
     private final CacheManager cacheManager;
+
+    private final AtomicLong _oldestConsistentGeneration = new AtomicLong(0);
 
     public MVCCCacheManagerHandler(CacheManager cacheManager) {
         this.cacheManager = cacheManager;
@@ -207,6 +214,28 @@ public class MVCCCacheManagerHandler {
             } else if (currentEntry.isLogicallyDeleted() && previousEntry == null) {
                 // oldest removed entry is logically deleted and it is last in the shell
                 typeData.getMVCCUidsLogicallyDeletedCounter().dec();
+            }
+        }
+    }
+
+    public long getOldestConsistentGeneration() {
+        return _oldestConsistentGeneration.get();
+    }
+
+    public void setOldestConsistentGeneration(long newOldestConsistentGeneration) {
+        _oldestConsistentGeneration.set(newOldestConsistentGeneration);
+    }
+
+
+    /**
+     * Method validates mvcc generation state for READ_COMMITTED operation.
+     * @throws  MVCCReadWithExpiredGenerationException - if it(generation) is less(older) than the oldest consistent generation
+     **/
+    public void validateMVCCReadWithExpiredGeneration(MVCCGenerationsState genState, int modifiers) {
+        if (ReadModifiers.isReadCommitted(modifiers)){
+            if (genState != null && genState.getCompletedGeneration() != -1
+                    && genState.getCompletedGeneration() < getOldestConsistentGeneration()) {
+                throw new MVCCReadWithExpiredGenerationException(genState.getCompletedGeneration(), getOldestConsistentGeneration());
             }
         }
     }
